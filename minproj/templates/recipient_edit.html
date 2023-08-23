@@ -1,0 +1,24 @@
+{% extends 'default.html' %}
+
+{% block content %}
+<h1> Получатель </h1>
+<hr>
+<p>Логин: {{ recipient.username }}</p>
+<p>Имя: {{ recipient.name }}</p>
+<p>Фамилия: {{ recipient.surname }}</p>
+{% if recipient.middle_name %}
+    <p>Отчество: {{ recipient.middle_name }}</p>
+{% endif %}
+<p>Телефон: {{ recipient.phone }}</p>
+<p>Почта: {{ recipient.email }}</p>
+{% if recipient.photo %}
+    <img src="{{ recipient.photo.url }}" alt="Фото" width="100">
+{% endif %}
+<br>
+<hr>
+<form action="" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <input type="submit" value="Save" />
+</form>
+{% endblock content %}

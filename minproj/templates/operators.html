@@ -1,0 +1,26 @@
+{% extends 'default.html' %}
+
+{% block title %}
+    Операторы
+{% endblock title %}
+
+{% block content %}
+    <h1>Все операторы</h1>
+    <hr>
+    {% if operators %}
+        {% for operator in operators %}
+            {% if operator.is_active and operator.is_check %}
+                {% if user.id == operator.user_id.id %}
+                    <b>{{ operator.user_id.name }} {{ operator.user_id.surname }}</b>
+                    <a href="/operators/{{ operator.user_id.id }}">Подробная информация</a>
+                {% else %}
+                    {{ operator.user_id.name }} {{ operator.user_id.surname }}
+                    <a href="/operators/{{ operator.user_id.id }}">Подробная информация</a>
+                {% endif %}
+                <hr>
+            {% endif %}
+        {% endfor %}
+    {% else %}
+        <h2>Операторов нет!</h2>
+    {% endif %}
+{% endblock content %}

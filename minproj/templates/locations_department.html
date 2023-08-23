@@ -1,0 +1,26 @@
+{% extends 'default.html' %}
+
+{% block title %}
+    Учреждения
+{% endblock title %}
+
+{% block content %}
+    <h1>{{department.name}} | Учреждения</h1>
+    <hr>
+    {% if locations %}
+        {% for location in locations %}
+            {% if operator and not location.is_active and location.department_id_id == request.user.department_id and location.department_id_id == department.id %}
+                <i>{{ location.name }}</i>
+                <a href="/locations/{{ location.id }}">Подробная информация</a> <hr>
+            {% endif %}
+            {% if location.is_active %}
+                {% if location.department_id_id == department.id %}
+                    {{ location.name }}
+                    <a href="/locations/{{ location.id }}">Подробная информация</a> <hr>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    {% else %}
+        <h2>Учреждений нет!</h2>
+    {% endif %}
+{% endblock content %}
