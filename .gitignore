@@ -103,6 +103,7 @@ celerybeat.pid
 
 # Environments
 .env
+.env*
 .venv
 env/
 venv/
@@ -131,3 +132,7 @@ dmypy.json
 # Docker
 docker*
 Docker*
+
+migrations/
+
+test.py

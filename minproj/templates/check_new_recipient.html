@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h2>Здравствуйте, оператор</h2>
+    <h3>добавлен получатель</h3>
+    <p>Имя: {{ to_user.name }} </p>
+    <p>Фамилия: {{ to_user.surname }} </p>
+    {% if to_user.middle_name %}
+        <p>Отчество: {{ to_user.middle_name }} </p>
+    {% endif %}
+    <p>Телефон: {{ to_user.phone }} </p>
+    <p>Почта: {{ to_user.email }} </p>
+    <p><b>Для ознакомления</b> пройдите по <a href="http://127.0.0.1:8000/recipients/{{ to_user.id }}">ссылке</a></p>
+</body>
+</html>

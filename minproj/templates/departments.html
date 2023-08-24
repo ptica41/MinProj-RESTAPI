@@ -1,0 +1,21 @@
+{% extends 'default.html' %}
+
+{% block title %}
+    Ведомства
+{% endblock title %}
+
+{% block content %}
+    <h1>Все ведомства</h1>
+    <hr>
+    {% if departments %}
+        {% for department in departments %}
+            {% if operator.department_id == department %}
+                <b>{{ department.name }}</b> | <a href="/departments/{{ department.id }}/locations">Учреждения</a> <hr>
+            {% else %}
+                {{ department.name }} | <a href="/departments/{{ department.id }}/locations">Учреждения</a> <hr>
+            {% endif %}
+        {% endfor %}
+    {% else %}
+        <h2>Ведомств нет!</h2>
+    {% endif %}
+{% endblock content %}

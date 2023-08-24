@@ -1,0 +1,178 @@
+openapi: 3.0.2
+info:
+  title: 'MinProj'
+  version: ''
+paths:
+  /auth/signin/:
+    post:
+      operationId: Login
+      description: |
+        ### Авторизация пользователей. В ответе указывается роль пользователя "staff", в зависимости от которой должен быть редирект в ЛК пользователя
+      parameters: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: ''
+      tags:
+        - login
+  /coordinators/signup/:
+    post:
+      operationId: RegistrationCoordinator
+      description: |
+        ### Регистрация Координатора. При успешной регистрации Администратору в ЛК и на почту должно отправляться уведомление.
+        ### Авторизация возможна только после подтверждения Администратором. 
+        ### Обязательные поля: "username", "password", "name", "surname", "phone", "email" 
+        ### Уникальные поля: "username", "phone"
+        ### Проверка на валидацию: "phone", "email"
+        # TODO: Добавление "photo" нужно реализовать
+      parameters: [ ]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationCoordinatorAndRecipient'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { }
+          description: ''
+      tags:
+        - coordinators
+  /recipients/signup/:
+    post:
+      operationId: RegistrationRecipient
+      description: |
+        ### Регистрация Получателя. При успешной регистрации Координаторам в ЛК и на почту должно отправляться уведомление.
+        ### Авторизация возможна только после подтверждения одним из Координаторов. 
+        ### Обязательные поля: "username", "password", "name", "surname", "phone" 
+        ### Уникальные поля: "username", "phone"
+        ### Проверка на валидацию: "phone", "email"
+        # TODO: Добавление "photo" нужно реализовать
+      parameters: [ ]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationCoordinatorAndRecipient'
+
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { }
+          description: ''
+      tags:
+        - recipients
+  /operators/signup/:
+    post:
+      operationId: RegistrationOperator
+      description: |
+        ### Регистрация Оператора. При успешной регистрации Администратору в ЛК и на почту должно отправляться уведомление.
+        ### Авторизация возможна только после подтверждения Администратором. 
+        ### Обязательные поля: "username", "password", "name", "surname", "phone", "email", "department_id_id" 
+        ### Уникальные поля: "username", "phone"
+        ### Проверка на валидацию: "phone", "email"
+        # TODO: Добавление "photo" нужно реализовать
+        # TODO: В поле "department_id_id" сейчас вводится id ведомства. Надо будет сделать выпадающий список ведомств из БД
+      parameters: [ ]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationOperator'
+
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { }
+          description: ''
+      tags:
+        - operators
+
+components:
+  schemas:
+    Login:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            username:
+              type: string
+              example: admin
+            password:
+              type: string
+              example: admin
+    RegistrationCoordinatorAndRecipient:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            username:
+              type: string
+              example: test1
+            password:
+              type: string
+              example: Maksoft2023
+            name:
+              type: string
+              example: testname
+            surname:
+              type: string
+              example: testsurname
+            middle_name:
+              type: string
+              example: testmiddlename
+            phone:
+              type: string
+              example: +79271112233
+            email:
+              type: string
+              example: test@test.test
+#            photo:
+#              type: string
+#              example: ""
+    RegistrationOperator:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            username:
+              type: string
+              example: test1
+            password:
+              type: string
+              example: Maksoft2023
+            name:
+              type: string
+              example: testname
+            surname:
+              type: string
+              example: testsurname
+            middle_name:
+              type: string
+              example: testmiddlename
+            phone:
+              type: string
+              example: +79271112233
+            email:
+              type: string
+              example: test@test.test
+#            photo:
+#              type: string
+#              example: ""
+            department_id_id:
+              type: integer
+              example: 2

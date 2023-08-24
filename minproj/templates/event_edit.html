@@ -1,0 +1,23 @@
+{% extends 'default.html' %}
+
+{% block content %}
+<h1> Событие </h1>
+<hr>
+<p>Название: {{ event.name }}</p>
+{% if event.description  %}
+    <p>Описание: {{ event.description }}</p>
+{% endif %}
+<p>Дата/время: {{ event.datetime }}</p>
+
+{% if event.photo %}
+    <img src="{{ event.photo.url }}" alt="Фото" width="100">
+{% endif %}
+<p>Учреждение: <a href="/locations/{{ event.location_id.id }}">{{ event.location_id.name }}</a></p>
+<p>Получатель: <a href="/recipients/{{ event.recipient_id.id }}">{{ event.recipient_id.user_id.surname }} {{ event.recipient_id.user_id.name }}</a></p>
+<hr>
+<form action="" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <input type="submit" value="Save" />
+</form>
+{% endblock content %}

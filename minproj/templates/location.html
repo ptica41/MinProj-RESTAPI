@@ -1,0 +1,31 @@
+{% extends 'default.html' %}
+
+<!-- Название у нас будет products -->
+{% block title %}
+Координатор
+{% endblock title %}
+
+<!-- В контенте на странице мы выводим все товары -->
+{% block content %}
+<p>Название: {{ location.name }}</p>
+<p>Адрес: {{ location.address }}</p>
+{% if location.lat and location.lon  %}
+    <p>Координаты: {{ location.lat }} {{ location.lon }}</p>
+{% endif %}
+{% if location.phone %}
+    <p>Телефон: {{ location.phone }}</p>
+{% endif %}
+{% if location.email %}
+    <p>Почта: {{ location.email }}</p>
+{% endif %}
+{% if location.department_id %}
+    <p>Ведомство: {{ location.department_id }}</p>
+{% endif %}
+{% if location.photo %}
+    <img src="{{ location.photo.url }}" alt="Фото" width="100">
+{% endif %}
+<br>
+{% if request.user.id == operator.id and operator.department_id == location.department_id %}
+    <p><button> <a href="update/">Редактировать учреждение</a> </button></p>
+{% endif %}
+{% endblock content %}

@@ -1,0 +1,26 @@
+{% extends 'default.html' %}
+
+{% block title %}
+    Координаторы
+{% endblock title %}
+
+{% block content %}
+    <h1>Все координаторы</h1>
+    <hr>
+    {% if coordinators %}
+        {% for coordinator in coordinators %}
+            {% if coordinator.is_active and coordinator.is_check %}
+                {% if user.id == coordinator.user_id.id %}
+                    <b>{{ coordinator.user_id.name }} {{ coordinator.user_id.surname }}</b>
+                    <a href="/coordinators/{{ coordinator.user_id.id }}">Подробная информация</a>
+                {% else %}
+                    {{ coordinator.user_id.name }} {{ coordinator.user_id.surname }}
+                    <a href="/coordinators/{{ coordinator.user_id.id }}">Подробная информация</a>
+                {% endif %}
+                <hr>
+            {% endif %}
+        {% endfor %}
+    {% else %}
+        <h2>Координаторов нет!</h2>
+    {% endif %}
+{% endblock content %}
