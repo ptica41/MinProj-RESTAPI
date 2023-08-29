@@ -1,11 +1,12 @@
 from django.db import models
 from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager, PermissionsMixin)
 from django.utils import timezone
-# from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.urls import reverse
+from rest_framework.authtoken.models import Token
 
 import jwt
 from phonenumber_field.modelfields import PhoneNumberField
@@ -98,28 +99,28 @@ class User(AbstractBaseUser, PermissionsMixin):
     # def get_absolute_url(self):
     #     return reverse('recipient_detail', args=[str(self.id)])
 
-    @property
-    def token(self):
-        """
-        Позволяет получить токен пользователя путем вызова user.token, вместо
-        user._generate_jwt_token(). Декоратор @property выше делает это
-        возможным. token называется "динамическим свойством".
-        """
-        return self._generate_jwt_token()
-
-    def _generate_jwt_token(self):
-        """
-        Генерирует веб-токен JSON, в котором хранится идентификатор этого
-        пользователя, срок действия токена составляет 1 день от создания
-        """
-        dt = datetime.now() + timedelta(days=30)
-
-        token = jwt.encode({
-            'id': self.pk,
-            'exp': dt.utcfromtimestamp(dt.timestamp())
-        }, settings.SECRET_KEY, algorithm='HS256')
-
-        return token
+    # @property
+    # def token(self):
+    #     """
+    #     Позволяет получить токен пользователя путем вызова user.token, вместо
+    #     user._generate_jwt_token(). Декоратор @property выше делает это
+    #     возможным. token называется "динамическим свойством".
+    #     """
+    #     return self._generate_jwt_token()
+    #
+    # def _generate_jwt_token(self):
+    #     """
+    #     Генерирует веб-токен JSON, в котором хранится идентификатор этого
+    #     пользователя, срок действия токена составляет 1 день от создания
+    #     """
+    #     dt = datetime.now() + timedelta(days=30)
+    #
+    #     token = jwt.encode({
+    #         'id': self.pk,
+    #         'exp': dt.utcfromtimestamp(dt.timestamp())
+    #     }, settings.SECRET_KEY, algorithm='HS256')
+    #
+    #     return token
 
 class Operator(models.Model):
     user_id = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -212,15 +213,17 @@ class Event(models.Model):
         return reverse('event', args=[str(self.id)])
 
 
-@receiver(post_save, sender=User)
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_user_signal(sender, instance, created, **kwargs):
-    if created and instance.staff == 'RE':
-        Recipient.objects.create(id=instance.id, user_id=instance)
-        instance.recipient.save()
-    if created and instance.staff == 'CO':
-        Coordinator.objects.create(id=instance.id, user_id=instance)
-        instance.coordinator.save()
-    if created and instance.staff == 'OP':
-        new = Operator.objects.create(id=instance.id, user_id=instance)
-        new.department_id_id = instance.department_id
-        instance.operator.save()
+    if created:
+        Token.objects.create(user=instance)
+        if instance.staff == 'RE':
+            Recipient.objects.create(id=instance.id, user_id=instance)
+            instance.recipient.save()
+        elif instance.staff == 'CO':
+            Coordinator.objects.create(id=instance.id, user_id=instance)
+            instance.coordinator.save()
+        elif instance.staff == 'OP':
+            new = Operator.objects.create(id=instance.id, user_id=instance)
+            new.department_id_id = instance.department_id
+            instance.operator.save()

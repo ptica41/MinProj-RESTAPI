@@ -2,12 +2,15 @@ openapi: 3.0.2
 info:
   title: 'MinProj'
   version: ''
+
 paths:
   /auth/signin/:
     post:
       operationId: Login
       description: |
         ### Авторизация пользователей. В ответе указывается роль пользователя "staff", в зависимости от которой должен быть редирект в ЛК пользователя
+        ## При авторизации обновляется поле last_login пользователя
+        ## Время жизни токена - 30 дней. При окончании срока действия или при отсутствии токена генерируется новый
       parameters: [ ]
       requestBody:
         required: true
@@ -20,7 +23,7 @@ paths:
           content:
             application/json:
               schema: { }
-          description: ''
+          description: OK
       tags:
         - login
   /coordinators/signup/:
@@ -44,7 +47,7 @@ paths:
           content:
             application/json:
               schema: { }
-          description: ''
+          description: OK
       tags:
         - coordinators
   /recipients/signup/:
@@ -69,7 +72,7 @@ paths:
           content:
             application/json:
               schema: { }
-          description: ''
+          description: OK
       tags:
         - recipients
   /operators/signup/:
@@ -95,11 +98,32 @@ paths:
           content:
             application/json:
               schema: { }
-          description: ''
+          description: OK
       tags:
         - operators
+  /whoami/:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Get a user by token
+      operationId: WhoAmI
+      parameters: []
+
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - whoami
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     Login:
       type: object
@@ -176,3 +200,5 @@ components:
             department_id_id:
               type: integer
               example: 2
+
+

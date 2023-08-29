@@ -1,16 +1,80 @@
+import datetime
+import json
+
+import pytz
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
 from django.views.generic import ListView
+from django.utils import timezone
 
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.authtoken.models import Token
 
+from django.conf import settings
 from .models import Department, Operator, Location, Recipient, Coordinator
 from .serializers import LoginSerializer
 from .renderers import UserJSONRenderer
+
+
+def get_user_dict(user):
+    info = {}
+    info['id'] = str(user.id)
+    if user.last_login:
+        info['last_login'] = str(user.last_login.astimezone(pytz.timezone(settings.TIME_ZONE)))
+    if user.date_joined:
+        info['date_joined'] = str(user.date_joined.astimezone(pytz.timezone(settings.TIME_ZONE)))
+    if user.username:
+        info['username'] = user.username
+    if user.name:
+        info['name'] = user.name
+    if user.surname:
+        info['surname'] = user.surname
+    if user.middle_name:
+        info['middle_name'] = user.middle_name
+    if user.staff:
+        info['staff'] = user.staff
+    if user.phone:
+        info['phone'] = str(user.phone)
+    if user.email:
+        info['email'] = str(user.email)
+    if user.photo:
+        info['photo'] = str(user.photo)
+    if user.department_id:
+        info['department_id'] = str(user.department_id)
+    return info
+
+
+class BearerToken(TokenAuthentication):
+    '''
+    Переопределяем класс для использования в заголовке запроса Authorisation: Bearer вместо Authorisation: Token
+    Также добавляем проверку на срок жизни токена и статуса is_active пользователя
+    '''
+
+    keyword = 'Bearer'
+
+    def authenticate_credentials(self, key):
+        try:
+            token = self.get_model().objects.get(key=key)
+        except self.get_model().DoesNotExist:
+            raise AuthenticationFailed('Invalid token')
+
+        if not token.user.is_active:
+            raise AuthenticationFailed('User inactive or deleted')
+
+        if token.created.timestamp() < (datetime.datetime.now(tz=timezone.utc) - datetime.timedelta(days=30)).timestamp():
+            raise AuthenticationFailed('Token has expired')
+
+        # token.user.last_login = datetime.datetime.now(tz=timezone.utc)
+        # token.user.save()
+
+        return token.user, token
 
 
 class LoginAPIView(APIView):
@@ -24,6 +88,16 @@ class LoginAPIView(APIView):
         serializer.is_valid(raise_exception=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class WhoAmIView(APIView):
+    authentication_classes = (BearerToken, )
+    permission_classes = (IsAuthenticated, )
+    renderer_classes = (UserJSONRenderer, )
+
+    def get(self, request):
+        user = request.user
+        return Response(get_user_dict(user), status=status.HTTP_200_OK)
 
 # class LogView(LoginView):
 #

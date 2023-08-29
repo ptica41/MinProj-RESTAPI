@@ -133,6 +133,4 @@ dmypy.json
 docker*
 Docker*
 
-migrations/
-
 test.py

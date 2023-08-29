@@ -1,8 +1,11 @@
 import datetime
+import pytz
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 from django.contrib.auth import authenticate
 from rest_framework import serializers
+from rest_framework.authtoken.models import Token
 
 from .models import User
 
@@ -32,7 +35,7 @@ class LoginSerializer(serializers.Serializer):
             )
 
         # Метод authenticate предоставляется Django и выполняет проверку, что
-        # предоставленные почта и пароль соответствуют какому-то пользователю в
+        # предоставленные логин и пароль соответствуют какому-то пользователю в
         # нашей базе данных.
         user = authenticate(username=username, password=password)
 
@@ -43,11 +46,24 @@ class LoginSerializer(serializers.Serializer):
 
         user.last_login = datetime.datetime.now(tz=timezone.utc)
         user.save()
+        try:
+            token = Token.objects.get(user=user)
 
-        # Метод validate должен возвращать словарь проверенных данных. Это
+            if token.created.timestamp() < (datetime.datetime.now(tz=timezone.utc) - datetime.timedelta(days=30)).timestamp():
+                # update the created time of the token to keep it valid
+                token.delete()
+                token = Token.objects.create(user=user)
+                token.created = datetime.datetime.now(tz=timezone.utc)
+                token.save()
+        except ObjectDoesNotExist:
+            token = Token.objects.create(user=user)
+            token.created = datetime.datetime.now(tz=timezone.utc)
+            token.save()
+
+                # Метод validate должен возвращать словарь проверенных данных. Это
         # данные, которые передются в т.ч. в методы create и update.
         return {
             'username': user.username,
-            'token': user.token,
+            'token': Token.objects.get(user=user).key,
             'staff': user.staff
         }
