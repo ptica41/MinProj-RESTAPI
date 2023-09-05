@@ -7,8 +7,9 @@ paths:
   /auth/signin/:
     post:
       operationId: Login
+      summary: Auth by username and password
       description: |
-        ### Авторизация пользователей. В ответе указывается роль пользователя "staff", в зависимости от которой должен быть редирект в ЛК пользователя
+        ### Авторизация пользователей. В ответе указывается токен и роль пользователя "staff", в зависимости от которой должен быть редирект в ЛК пользователя
         ## При авторизации обновляется поле last_login пользователя
         ## Время жизни токена - 30 дней. При окончании срока действия или при отсутствии токена генерируется новый
       parameters: [ ]
@@ -28,6 +29,7 @@ paths:
         - login
   /coordinators/signup/:
     post:
+      summary: Registration Coordinator
       operationId: RegistrationCoordinator
       description: |
         ### Регистрация Координатора. При успешной регистрации Администратору в ЛК и на почту должно отправляться уведомление.
@@ -49,10 +51,11 @@ paths:
               schema: { }
           description: OK
       tags:
-        - coordinators
+        - registration
   /recipients/signup/:
     post:
       operationId: RegistrationRecipient
+      summary: Registration Recipient
       description: |
         ### Регистрация Получателя. При успешной регистрации Координаторам в ЛК и на почту должно отправляться уведомление.
         ### Авторизация возможна только после подтверждения одним из Координаторов. 
@@ -74,10 +77,11 @@ paths:
               schema: { }
           description: OK
       tags:
-        - recipients
+        - registration
   /operators/signup/:
     post:
       operationId: RegistrationOperator
+      summary: Registration Operator
       description: |
         ### Регистрация Оператора. При успешной регистрации Администратору в ЛК и на почту должно отправляться уведомление.
         ### Авторизация возможна только после подтверждения Администратором. 
@@ -100,7 +104,7 @@ paths:
               schema: { }
           description: OK
       tags:
-        - operators
+        - registration
   /whoami/:
     get:
       security:
@@ -117,6 +121,142 @@ paths:
           description: OK
       tags:
         - whoami
+  /users/:
+    get:
+      security:
+        - bearerAuth: [ ]
+      summary: Get a user's list by token
+      operationId: Users
+      description: |
+        # Список пользователей в зависимости от роли пользователя (определяется по токену):
+        ## Админ - абсолютно все пользователи
+        ## Координаторы(валидные и активные) - активные и валидные координаторы, активные и валидные операторы, все получатели
+        ## Операторы(валидные и активные) - активные и валидные координаторы, активные и валидные операторы, активные и валидные получатели
+        ## Получатели - доступ закрыт
+      parameters: [ ]
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - users
+    post:
+      security:
+        - bearerAuth: [ ]
+      operationId: CreateUser
+      summary: Create User by Administrator
+      description: |
+        ### Создание пользователя
+        ### Доступ только у Администратора. 
+        ### Обязательные поля: "username", "password", "name", "surname", "phone", "staff", "is_superuser", "is_check", "is_active" 
+        ### Уникальные поля: "username", "phone"
+        ### Проверка на валидацию: "phone", "email"
+        # TODO: Добавление "photo" нужно реализовать
+        # TODO: Выбор роли пользователя из списка
+      parameters: [ ]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUser'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - users
+  /users/{id}/:
+    get:
+      security:
+        - bearerAuth: [ ]
+      summary: Get a user by id
+      operationId: GetUser
+      description: |
+        # Получение профиля пользователя:
+        ## Админ - абсолютно все пользователи
+        ## Координаторы(валидные и активные) - активные и валидные координаторы, активные и валидные операторы, все получатели
+        ## Операторы(валидные и активные) - активные и валидные координаторы, активные и валидные операторы, активные и валидные получатели
+        ## Получатели - доступ закрыт
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - users
+    patch:
+      security:
+        - bearerAuth: [ ]
+      summary: Update a user by id
+      operationId: UpdateUser
+      description: |
+        # Редактирование профиля пользователя:
+        ## Админ - редактирование всех полей любого пользователя
+        ## Координаторы(валидные и активные) - редактирование собственного профиля, кроме is_check (только Администраторы)
+        ## Операторы(валидные и активные) - редактирование собственного профиля, кроме is_check (только Администраторы)
+        ## Получатели(валидные и активные) - редактирование собственного профиля, кроме is_check (только Координаторы и Администраторы)
+        ## В request body перечислены все поля (ненужные удалить)
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchUserAdmin'
+            required: true
+
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - users
+    delete:
+      security:
+        - bearerAuth: [ ]
+      summary: Delete a user by id
+      operationId: DeleteUser
+      description: |
+        # Удаление пользователя:
+        ## Админ - удаляет любого пользователя из БД
+        ## Координаторы, Операторы, Получатели - удаляют только собственный доступ к сервису (меняют статус is_active = False). Восстановить может только Администратор
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - users
+
 
 components:
   securitySchemes:
@@ -200,5 +340,89 @@ components:
             department_id_id:
               type: integer
               example: 2
+    CreateUser:
+      type: object
+      properties:
+        username:
+          type: string
+          example: testusername
+        password:
+          type: string
+          example: Maksoft2023
+        name:
+          type: string
+          example: testname
+        surname:
+          type: string
+          example: testsurname
+        middle_name:
+          type: string
+          example:
+        staff:
+          type: string
+          example: CO
+        phone:
+          type: string
+          example: +79275555555
+        email:
+          type: string
+          example: test@test.test
+        #            photo:
+        #              type: string
+        #              example: ""
+        department_id_id:
+          type: integer
+          example:
+        is_superuser:
+          type: boolean
+          example: False
+        is_active:
+          type: boolean
+          example: True
+        is_check:
+          type: boolean
+          example: True
+    PatchUserAdmin:
+      type: object
+      properties:
+        username:
+          type: string
+          example:
+        password:
+          type: string
+          example:
+        name:
+          type: string
+          example:
+        surname:
+          type: string
+          example:
+        middle_name:
+          type: string
+          example:
+        staff:
+          type: string
+          example:
+        phone:
+          type: string
+          example:
+        email:
+          type: string
+          example:
+        #            photo:
+        #              type: string
+        #              example: ""
+        department_id:
+          type: integer
+          example:
+        is_superuser:
+          type: boolean
+          example:
+        is_active:
+          type: boolean
+          example:
+        is_check:
+          type: boolean
+          example:
 
 

@@ -40,7 +40,7 @@ class UserManager(BaseUserManager):
         surname and password.
         """
         user = self.create_user(username, name, surname, password, commit=False)
-        user.is_staff = True
+        # user.is_staff = True
         user.is_superuser = True
         user.staff = 'AD'
         user.save(using=self._db)
@@ -74,17 +74,20 @@ class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(verbose_name='Логин', max_length=50, unique=True, db_index=True)
     name = models.CharField(verbose_name='Имя', max_length=255)
     surname = models.CharField(verbose_name='Фамилия', max_length=255)
-    middle_name = models.CharField(verbose_name='Отчество', max_length=255, blank=True)
+    middle_name = models.CharField(verbose_name='Отчество', max_length=255, blank=True, null=True)
     staff = models.CharField(verbose_name='Должность', max_length=2, choices=CHOICES)
     phone = PhoneNumberField(verbose_name='Телефон', unique=True)
     email = models.EmailField(verbose_name='Эл. почта', blank=True)
     photo = models.ImageField(verbose_name='Фотография', blank=True, upload_to='users/')
     date_joined = models.DateTimeField('Дата создания', default=timezone.now)
-    is_staff = models.BooleanField(
-        'staff status',
-        default=False,
-        help_text='Designates whether the user can log into this admin site.')
-    department_id = models.ForeignKey(Department, on_delete=models.CASCADE, verbose_name='Ведомство', blank=True, null=True, help_text='Только для операторов')
+    is_check = models.BooleanField(verbose_name='Проверка', default=False)
+    is_active = models.BooleanField(verbose_name='Активный пользователь?', default=True)
+    # is_staff = models.BooleanField(
+    #     'staff status',
+    #     default=False,
+    #     help_text='Designates whether the user can log into this admin site.')
+    department_id = models.ForeignKey(Department, on_delete=models.CASCADE, verbose_name='Ведомство', blank=True,
+                                      null=True, help_text='Только для операторов', related_name='department_key')
 
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['name', 'surname']
@@ -122,44 +125,43 @@ class User(AbstractBaseUser, PermissionsMixin):
     #
     #     return token
 
-class Operator(models.Model):
-    user_id = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    department_id = models.ForeignKey(Department, on_delete=models.CASCADE, blank=True, null=True)
-    is_check = models.BooleanField(verbose_name='Проверка', default=False)
-    is_active = models.BooleanField(verbose_name='Активный пользователь?', default=True)
 
-    class Meta:
-        db_table = "Operators"
-        verbose_name_plural = "Операторы"
-
-    def __str__(self):
-        return f'{self.user_id.surname} {self.user_id.name} | {self.department_id}'
-
-
-class Coordinator(models.Model):
-    user_id = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    is_check = models.BooleanField(verbose_name='Проверка', default=False)
-    is_active = models.BooleanField(verbose_name='Активный пользователь?', default=True)
-
-    class Meta:
-        db_table = "Coordinators"
-        verbose_name_plural = "Координаторы"
-
-    def __str__(self):
-        return f'{self.user_id.surname} {self.user_id.name}'
-
-
-class Recipient(models.Model):
-    user_id = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    is_check = models.BooleanField(verbose_name='Проверка', default=False)
-    is_active = models.BooleanField(verbose_name='Активный пользователь?', default=True)
-
-    class Meta:
-        db_table = "Recipients"
-        verbose_name_plural = "Получатели"
-
-    def __str__(self):
-        return f'{self.user_id.surname} {self.user_id.name}'
+# class Operator(models.Model):
+#     user_id = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+#     department_id = models.ForeignKey(Department, on_delete=models.CASCADE, blank=True, null=True)
+#     is_check = models.BooleanField(verbose_name='Проверка', default=False)
+#     is_active = models.BooleanField(verbose_name='Активный пользователь?', default=True)
+#
+#     class Meta:
+#         db_table = "Operators"
+#         verbose_name_plural = "Операторы"
+#
+#     def __str__(self):
+#         return f'{self.user_id.surname} {self.user_id.name} | {self.department_id}'
+#
+#
+# class Coordinator(models.Model):
+#     user_id = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+#     is_check = models.BooleanField(verbose_name='Проверка', default=False)
+#     is_active = models.BooleanField(verbose_name='Активный пользователь?', default=True)
+#
+#     class Meta:
+#         db_table = "Coordinators"
+#         verbose_name_plural = "Координаторы"
+#
+#     def __str__(self):
+#         return f'{self.user_id.surname} {self.user_id.name}'
+#
+#
+# class Recipient(models.Model):
+#     user_id = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+#
+#     class Meta:
+#         db_table = "Recipients"
+#         verbose_name_plural = "Получатели"
+#
+#     def __str__(self):
+#         return f'{self.user_id.surname} {self.user_id.name}'
 
 
 class Location(models.Model):
@@ -196,7 +198,7 @@ class Event(models.Model):
     is_finished = models.BooleanField(verbose_name="Выполнено", default=False)
     photo = models.ImageField(verbose_name="Фотография", blank=True, upload_to='events/')
     location_id = models.ForeignKey(Location, on_delete=models.CASCADE, verbose_name="Учреждение")
-    recipient_id = models.ForeignKey(Recipient, on_delete=models.CASCADE, verbose_name="Получатель")
+    recipient_id = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Получатель")
 
     @property
     def is_future(self):
@@ -217,13 +219,13 @@ class Event(models.Model):
 def create_user_signal(sender, instance, created, **kwargs):
     if created:
         Token.objects.create(user=instance)
-        if instance.staff == 'RE':
-            Recipient.objects.create(id=instance.id, user_id=instance)
-            instance.recipient.save()
-        elif instance.staff == 'CO':
-            Coordinator.objects.create(id=instance.id, user_id=instance)
-            instance.coordinator.save()
-        elif instance.staff == 'OP':
-            new = Operator.objects.create(id=instance.id, user_id=instance)
-            new.department_id_id = instance.department_id
-            instance.operator.save()
+#         if instance.staff == 'RE':
+#             Recipient.objects.create(id=instance.id, user_id=instance)
+#             instance.recipient.save()
+#         elif instance.staff == 'CO':
+#             Coordinator.objects.create(id=instance.id, user_id=instance)
+#             instance.coordinator.save()
+#         elif instance.staff == 'OP':
+#             new = Operator.objects.create(id=instance.id, user_id=instance)
+#             new.department_id_id = instance.department_id
+#             instance.operator.save()
