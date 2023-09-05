@@ -17,5 +17,5 @@ class UserJSONRenderer(JSONRenderer):
             data['token'] = token.decode('utf-8')
 
         return json.dumps({
-            'user': data
+            'data': data
         })
