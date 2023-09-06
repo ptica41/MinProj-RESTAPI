@@ -74,6 +74,7 @@ class UserSerializer(serializers.ModelSerializer):
     department_name = serializers.StringRelatedField(source='department_id.name')
     password = serializers.CharField(max_length=128, min_length=8, write_only=True)
     is_check = serializers.BooleanField(read_only=True)
+    staff = serializers.CharField(read_only=True)
 
     class Meta:
         model = User

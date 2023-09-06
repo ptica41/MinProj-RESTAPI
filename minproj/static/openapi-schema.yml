@@ -27,6 +27,7 @@ paths:
           description: OK
       tags:
         - login
+
   /coordinators/signup/:
     post:
       summary: Registration Coordinator
@@ -52,6 +53,7 @@ paths:
           description: OK
       tags:
         - registration
+
   /recipients/signup/:
     post:
       operationId: RegistrationRecipient
@@ -69,7 +71,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/RegistrationCoordinatorAndRecipient'
-
       responses:
         '201':
           content:
@@ -78,6 +79,7 @@ paths:
           description: OK
       tags:
         - registration
+
   /operators/signup/:
     post:
       operationId: RegistrationOperator
@@ -96,7 +98,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/RegistrationOperator'
-
       responses:
         '201':
           content:
@@ -105,6 +106,7 @@ paths:
           description: OK
       tags:
         - registration
+
   /whoami/:
     get:
       security:
@@ -112,15 +114,15 @@ paths:
       summary: Get a user by token
       operationId: WhoAmI
       parameters: []
-
       responses:
-        '201':
+        '200':
           content:
             application/json:
               schema: { }
           description: OK
       tags:
         - whoami
+
   /users/:
     get:
       security:
@@ -135,7 +137,7 @@ paths:
         ## Получатели - активные и валидные координаторы
       parameters: [ ]
       responses:
-        '201':
+        '200':
           content:
             application/json:
               schema: { }
@@ -169,6 +171,7 @@ paths:
           description: OK
       tags:
         - users
+
   /users/{id}/:
     get:
       security:
@@ -188,9 +191,8 @@ paths:
             type: integer
             example: 1
           required: true
-
       responses:
-        '201':
+        '200':
           content:
             application/json:
               schema: { }
@@ -205,9 +207,9 @@ paths:
       description: |
         # Редактирование профиля пользователя:
         ## Админ - редактирование всех полей любого пользователя
-        ## Координаторы(валидные и активные) - редактирование собственного профиля, кроме is_check (только Администраторы)
-        ## Операторы(валидные и активные) - редактирование собственного профиля, кроме is_check (только Администраторы)
-        ## Получатели(валидные и активные) - редактирование собственного профиля, кроме is_check (только Координаторы и Администраторы)
+        ## Координаторы(валидные и активные) - редактирование собственного профиля, кроме staff, is_check (только Администраторы)
+        ## Операторы(валидные и активные) - редактирование собственного профиля, кроме staff, is_check (только Администраторы)
+        ## Получатели(валидные и активные) - редактирование собственного профиля, кроме staff (админ), is_check (только Координаторы и Администраторы)
         ## В request body перечислены все поля (ненужные удалить)
       parameters:
         - in: path
@@ -222,9 +224,8 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchUserAdmin'
             required: true
-
       responses:
-        '201':
+        '200':
           content:
             application/json:
               schema: { }
@@ -247,7 +248,51 @@ paths:
             type: integer
             example: 1
           required: true
+      responses:
+        '204':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - users
 
+  /departments/:
+    get:
+      security:
+        - bearerAuth: [ ]
+      summary: Get a department's list by token
+      operationId: Departments
+      description: |
+        # Список всех ведомств. Могут смотреть все активные и валидные пользователи
+      parameters: [ ]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - departments
+    post:
+      security:
+        - bearerAuth: [ ]
+      operationId: CreateDepartment
+      summary: Create Department by Administrator
+      description: |
+        ### Создание ведомства
+        ### Доступ только у Администратора.
+      parameters: [ ]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Министерство здравоохранения
+            required: true
       responses:
         '201':
           content:
@@ -255,7 +300,88 @@ paths:
               schema: { }
           description: OK
       tags:
-        - users
+        - departments
+
+  /departments/{id}/:
+    get:
+      security:
+        - bearerAuth: [ ]
+      summary: Get a Department by id
+      operationId: GetDepartment
+      description: |
+        # Получение ведомства. Могут смотреть все активные и валидные пользователи
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - departments
+
+    patch:
+      security:
+        - bearerAuth: [ ]
+      summary: Update a Department by id
+      operationId: UpdateDepartment
+      description: |
+        # Редактирование ведомства:
+        # Доступ только у Администратора.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Министерство здравоохранения
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - departments
+
+    delete:
+      security:
+        - bearerAuth: [ ]
+      summary: Delete a Department by id
+      operationId: DeleteUser
+      description: |
+        # Удаление ведомства из БД:
+        # Доступ только у Администратора.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+      responses:
+        '204':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - departments
 
 
 components:

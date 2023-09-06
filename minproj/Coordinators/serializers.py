@@ -19,6 +19,11 @@ class RegistrationSerializer(serializers.ModelSerializer):
         model = User
         fields = ['username', 'name', 'surname', 'middle_name', 'staff', 'phone', 'email', 'photo', 'password', 'token']
 
+    def validate(self, data):
+        if data['staff'] != 'CO':
+            data['staff'] = 'CO'
+        return data
+
     def create(self, validated_data):
         # Использовать метод create_user, который мы
         # написали ранее, для создания нового пользователя.
