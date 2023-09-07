@@ -28,7 +28,7 @@ urlpatterns = [
     path('coordinators/', include('Coordinators.urls')),
     path('recipients/', include('Recipients.urls')),
     path('operators/', include('Operators.urls')),
-    # path('locations/', include('Locations.urls')),
+    path('locations/', include('Locations.urls')),
     # path('events/', include('Events.urls')),
     path('swagger-ui/', TemplateView.as_view(
         template_name='swagger-ui.html',

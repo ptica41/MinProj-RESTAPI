@@ -87,7 +87,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     #     default=False,
     #     help_text='Designates whether the user can log into this admin site.')
     department_id = models.ForeignKey(Department, on_delete=models.CASCADE, verbose_name='Ведомство', blank=True,
-                                      null=True, help_text='Только для операторов', related_name='department_key')
+                                      null=True, help_text='Только для операторов')
 
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['name', 'surname']

@@ -110,10 +110,10 @@ paths:
   /whoami/:
     get:
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       summary: Get a user by token
       operationId: WhoAmI
-      parameters: []
+      parameters: [ ]
       responses:
         '200':
           content:
@@ -383,6 +383,165 @@ paths:
       tags:
         - departments
 
+  /departments/{id}/locations/:
+    get:
+      security:
+        - bearerAuth: [ ]
+      summary: Get a department's locations by token
+      operationId: DepartmentLocations
+      description: |
+        # Список всех учреждений ведомства:
+        ## Администраторы - все учреждения ведомства
+        ## Операторы (активные и валидные) - все учреждения (если оператор связан с ведомством) или активные учреждения (если оператор не связан с ведомством)
+        ## Координаторы и получатели (активные и валидные) - активные учреждения ведомства
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - departments
+
+  /locations/:
+    get:
+      security:
+        - bearerAuth: [ ]
+      summary: Get a location's list by token
+      operationId: Locations
+      description: |
+        # Список всех учреждений. 
+        ## Администраторы - все учреждения
+        ## Операторы (активные и валидные) - все учреждения, кроме неактивных учреждений других ведомств
+        ## Координаторы и получатели (активные и валидные) - активные учреждения
+      parameters: [ ]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - locations
+    post:
+      security:
+        - bearerAuth: [ ]
+      operationId: CreateLocation
+      summary: Create Location
+      description: |
+        ### Создание учреждения
+        ### Доступ только у Администратора и Операторов (ведомство Оператора = ведомству учреждения).
+        ### Обязательные поля: "name", "address", "phone", "department_id" (это поле только для Админа, для Оператора оно будет игнорироваться)
+        ### Уникальные поля: "name", "phone"
+        ### Проверка на валидацию: "phone"
+        # TODO: Добавление "photo" нужно реализовать, реализация координат локации
+      parameters: [ ]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLocation'
+            required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - locations
+
+  /locations/{id}/:
+    get:
+      security:
+        - bearerAuth: [ ]
+      summary: Get a Location by id
+      operationId: GetLocation
+      description: |
+        # Получение учреждения
+        ## Администраторы - любое учреждение
+        ## Операторы (активные и валидные) - любое учреждение, кроме неактивных учреждений других ведомств
+        ## Координаторы и получатели (активные и валидные) - активное учреждение
+
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - locations
+
+    patch:
+      security:
+        - bearerAuth: [ ]
+      summary: Update a Location by id
+      operationId: UpdateLocation
+      description: |
+        # Редактирование ведомства:
+        ## Доступ только у Администратора и Операторов (ведомство Оператора = ведомству учреждения).
+        ## Поля is_active и department_id редактировать могут только Админы
+        ### Ненужные поля удалить
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchLocation'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - locations
+
+    delete:
+      security:
+        - bearerAuth: [ ]
+      summary: Delete a Location by id
+      operationId: DeleteLocation
+      description: |
+        # Удаление учреждения:
+        ## Админ - удаляет любое учреждение из БД
+        ## Операторы - делают учреждение неактивным (меняют статус is_active = False). Доступ только к учреждениям собственного ведомства. Восстановить может только Администратор
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+      responses:
+        '204':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - locations
+
 
 components:
   securitySchemes:
@@ -430,9 +589,9 @@ components:
             email:
               type: string
               example: test@test.test
-#            photo:
-#              type: string
-#              example: ""
+    #            photo:
+    #              type: string
+    #              example: ""
     RegistrationOperator:
       type: object
       properties:
@@ -460,9 +619,9 @@ components:
             email:
               type: string
               example: test@test.test
-#            photo:
-#              type: string
-#              example: ""
+            #            photo:
+            #              type: string
+            #              example: ""
             department_id_id:
               type: integer
               example: 2
@@ -550,5 +709,61 @@ components:
         is_check:
           type: boolean
           example:
-
+    CreateLocation:
+      type: object
+      properties:
+        name:
+          type: string
+          example: test1
+        address:
+          type: string
+          example: Penza
+        lat:
+          type: number
+          example: 53.178386
+        lon:
+          type: number
+          example: 45.008664
+        phone:
+          type: string
+          example: +79271112233
+        email:
+          type: string
+          example: test@test.test
+        department_id:
+          type: string
+          example: 1
+    #            photo:
+    #              type: string
+    #              example: ""
+    PatchLocation:
+      type: object
+      properties:
+        name:
+          type: string
+          example: test1
+        address:
+          type: string
+          example: Penza
+        lat:
+          type: number
+          example: 53.178386
+        lon:
+          type: number
+          example: 45.008664
+        phone:
+          type: string
+          example: +79271112233
+        email:
+          type: string
+          example: test@test.test
+        department_id:
+          type: string
+          example: 1
+        is_active:
+          type: boolean
+          example: true
+    #            photo:
+    #              type: string
+    #              example: ""
 

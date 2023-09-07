@@ -113,10 +113,12 @@ class LoginAPIView(APIView):
         user = request.data.get('user', {})
         serializer = self.serializer_class(data=user)
         if serializer.is_valid():
-            return Response(user_response(True, "User was send successful", 200, serializer.data), status=status.HTTP_200_OK)
+            return Response(user_response(True, "User was send successful", 200, serializer.data),
+                            status=status.HTTP_200_OK)
         else:
             return Response(user_response(False, "User with this username and password was not found",
-                            400, None, exception="AuthenticationFailed"), status=status.HTTP_400_BAD_REQUEST)
+                                          400, None, exception="AuthenticationFailed"),
+                            status=status.HTTP_400_BAD_REQUEST)
 
         # return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -124,11 +126,13 @@ class LoginAPIView(APIView):
 class WhoAmIView(APIView):
     authentication_classes = (BearerToken,)
     permission_classes = (IsAuth,)
+
     # renderer_classes = (UserJSONRenderer,)
 
     def get(self, request):
         user = request.user
-        return Response(user_response(True, "User was send successful", 200, get_user_dict(user)), status=status.HTTP_200_OK)
+        return Response(user_response(True, "User was send successful", 200, get_user_dict(user)),
+                        status=status.HTTP_200_OK)
 
 
 class UsersAPIView(APIView):
@@ -154,22 +158,25 @@ class UsersAPIView(APIView):
             raise serializers.ValidationError(user_response(False, "Permission denied", 403, None, "ValidationError"))
 
         serializer = UserSerializer(instance=users, many=True)
-        return Response(user_response(True, "Users were send successful", 200, serializer.data), status=status.HTTP_200_OK)
-
+        return Response(user_response(True, "Users were send successful", 200, serializer.data),
+                        status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
         token = request.META.get('HTTP_AUTHORIZATION')
         user_id = Token.objects.get(key=token.split(' ')[1]).user_id
         user = User.objects.get(id=user_id)
+
         if user.staff == 'AD':
             profile = request.data
             serializer = CreateUserSerializer(data=profile)
             if serializer.is_valid():
                 serializer.save()
-                return Response(user_response(True, "User was create successful", 201, serializer.data), status=status.HTTP_201_CREATED)
+                return Response(user_response(True, "User was create successful", 201, serializer.data),
+                                status=status.HTTP_201_CREATED)
             else:
-                return Response(user_response(False, "Incorrect data", 400, serializer.errors, exception="ValidationError"),
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    user_response(False, "Incorrect data", 400, serializer.errors, exception="ValidationError"),
+                    status=status.HTTP_400_BAD_REQUEST)
         else:
             raise serializers.ValidationError(user_response(False, "Permission denied", 403, None, "ValidationError"))
 
@@ -182,6 +189,7 @@ class UserAPIView(APIView):
         token = request.META.get('HTTP_AUTHORIZATION')
         user_id = Token.objects.get(key=token.split(' ')[1]).user_id
         user = User.objects.get(id=user_id)
+
         try:
             profile = User.objects.get(id=kwargs.get('pk'))
             if user.staff == 'AD':
@@ -191,28 +199,34 @@ class UserAPIView(APIView):
                         profile.staff == 'OP' and profile.is_active and profile.is_check):
                     serializer = UserSerializer(instance=profile)
                 else:
-                    raise serializers.ValidationError(user_response(False, "Permission denied", 403, None, "ValidationError"))
+                    raise serializers.ValidationError(
+                        user_response(False, "Permission denied", 403, None, "ValidationError"))
             elif user.staff == 'OP' and user.is_active and user.is_check:
                 if profile.staff != 'AD' and profile.is_active and profile.is_check:
                     serializer = UserSerializer(instance=profile)
                 else:
-                    raise serializers.ValidationError(user_response(False, "Permission denied", 403, None, "ValidationError"))
+                    raise serializers.ValidationError(
+                        user_response(False, "Permission denied", 403, None, "ValidationError"))
             elif user.staff == 'RE' and user.is_active and user.is_check:
                 if profile.staff == 'CO' and profile.is_active and profile.is_check:
                     serializer = UserSerializer(instance=profile)
                 else:
-                    raise serializers.ValidationError(user_response(False, "Permission denied", 403, None, "ValidationError"))
+                    raise serializers.ValidationError(
+                        user_response(False, "Permission denied", 403, None, "ValidationError"))
             else:
-                raise serializers.ValidationError(user_response(False, "Permission denied", 403, None, "ValidationError"))
+                raise serializers.ValidationError(
+                    user_response(False, "Permission denied", 403, None, "ValidationError"))
+            return Response(user_response(True, "User were send successful", 200, serializer.data),
+                            status=status.HTTP_200_OK)
+
         except ObjectDoesNotExist:
             raise serializers.ValidationError(user_response(False, "Wrong ID", 400, None, "ValidationError"))
-
-        return Response(user_response(True, "User were send successful", 200, serializer.data), status=status.HTTP_200_OK)
 
     def patch(self, request, *args, **kwargs):
         token = request.META.get('HTTP_AUTHORIZATION')
         user_id = Token.objects.get(key=token.split(' ')[1]).user_id
         user = User.objects.get(id=user_id)
+
         try:
             profile = User.objects.get(id=kwargs.get('pk'))
             if user.staff == 'AD':
@@ -225,7 +239,7 @@ class UserAPIView(APIView):
                     return Response(user_response(False, "Incorrect data", 400, serializer.errors,
                                                   exception="ValidationError"), status=status.HTTP_400_BAD_REQUEST)
             elif user == profile and user.is_check and user.is_active:
-                serializer = UserSerializer(profile, data=request.data, partial=True)
+                serializer = UserSerializer(profile, data=request.data, partial=True, context={'request': request})
                 if serializer.is_valid():
                     serializer.save()
                     return Response(user_response(True, "User was patch successful", 200, serializer.data),
@@ -243,7 +257,9 @@ class UserAPIView(APIView):
                     return Response(user_response(False, "Incorrect data", 400, serializer.errors,
                                                   exception="ValidationError"), status=status.HTTP_400_BAD_REQUEST)
             else:
-                raise serializers.ValidationError(user_response(False, "Permission denied", 403, None, "ValidationError"))
+                raise serializers.ValidationError(
+                    user_response(False, "Permission denied", 403, None, "ValidationError"))
+
         except ObjectDoesNotExist:
             raise serializers.ValidationError(user_response(False, "Wrong ID", 400, None, "ValidationError"))
 
@@ -251,6 +267,7 @@ class UserAPIView(APIView):
         token = request.META.get('HTTP_AUTHORIZATION')
         user_id = Token.objects.get(key=token.split(' ')[1]).user_id
         user = User.objects.get(id=user_id)
+
         try:
             profile = User.objects.get(id=kwargs.get('pk'))
             if user.staff == 'AD':
@@ -259,11 +276,14 @@ class UserAPIView(APIView):
                 profile.is_active = False
                 profile.save()
             else:
-                raise serializers.ValidationError(user_response(False, "Permission denied", 403, None, "ValidationError"))
+                raise serializers.ValidationError(
+                    user_response(False, "Permission denied", 403, None, "ValidationError"))
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
         except ObjectDoesNotExist:
             raise serializers.ValidationError(user_response(False, "Wrong ID", 400, None, "ValidationError"))
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 # class LogView(LoginView):
 #

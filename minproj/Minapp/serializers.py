@@ -70,18 +70,6 @@ class LoginSerializer(serializers.Serializer):
         }
 
 
-class UserSerializer(serializers.ModelSerializer):
-    department_name = serializers.StringRelatedField(source='department_id.name')
-    password = serializers.CharField(max_length=128, min_length=8, write_only=True)
-    is_check = serializers.BooleanField(read_only=True)
-    staff = serializers.CharField(read_only=True)
-
-    class Meta:
-        model = User
-        # fields = '__all__'
-        exclude = ['is_superuser', 'groups', 'user_permissions']
-
-
 class CreateUserSerializer(serializers.ModelSerializer):  # только для Администраторов
     password = serializers.CharField(max_length=128, min_length=8, write_only=True)
     email = serializers.EmailField(allow_null=True)
@@ -94,6 +82,24 @@ class CreateUserSerializer(serializers.ModelSerializer):  # только для 
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)
+
+
+class UserSerializer(serializers.ModelSerializer):
+    department_name = serializers.StringRelatedField(source='department_id.name')
+    password = serializers.CharField(max_length=128, min_length=8, write_only=True)
+    is_check = serializers.BooleanField(read_only=True)
+    staff = serializers.CharField(read_only=True)
+
+    def validate(self, data):
+        department_id = self.context['request'].user.department_id
+        if data['department_id'] != department_id:
+            data['department_id'] = department_id
+        return data
+
+    class Meta:
+        model = User
+        # fields = '__all__'
+        exclude = ['is_superuser', 'groups', 'user_permissions']
 
 
 class PatchUserAdminSerializer(serializers.ModelSerializer):
