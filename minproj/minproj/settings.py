@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'Locations.apps.LocationsConfig',
     'Events.apps.EventsConfig',
     'Departments.apps.DepartmentsConfig',
+    'Groups.apps.GroupsConfig',
 
     'phonenumber_field',
     'django_filters',

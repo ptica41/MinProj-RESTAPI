@@ -61,6 +61,20 @@ class Department(models.Model):
         return self.name
 
 
+class Group(models.Model):
+    name = models.CharField(verbose_name='Название', unique=True, max_length=255,
+                            error_messages={'required': 'Обязательное поле',
+                                            'unique': 'Группа с таким названием уже существует'})
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "Groups"
+        verbose_name_plural = "Группы"
+
+    def __str__(self):
+        return self.name
+
+
 class User(AbstractBaseUser, PermissionsMixin):
     CHOICES = [
         ('AD', 'Администратор'),
@@ -82,6 +96,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     date_joined = models.DateTimeField('Дата создания', default=timezone.now)
     is_check = models.BooleanField(verbose_name='Проверка', default=False)
     is_active = models.BooleanField(verbose_name='Активный пользователь?', default=True)
+    groups = models.ManyToManyField(Group, through="UserGroups")
     # is_staff = models.BooleanField(
     #     'staff status',
     #     default=False,
@@ -98,6 +113,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f'{self.surname} {self.get_staff_display()}'
+
 
     # def get_absolute_url(self):
     #     return reverse('recipient_detail', args=[str(self.id)])
@@ -124,6 +140,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     #     }, settings.SECRET_KEY, algorithm='HS256')
     #
     #     return token
+
+
+class UserGroups(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE)
 
 
 # class Operator(models.Model):
@@ -193,16 +214,19 @@ class Location(models.Model):
 class Event(models.Model):
     name = models.CharField(verbose_name="Название", max_length=255)
     description = models.CharField(verbose_name="Описание", max_length=255, blank=True)
-    datetime = models.DateTimeField(verbose_name="Дата/время", default=datetime.now())
-    is_check = models.BooleanField(verbose_name="Согласовано", default=False)
+    datetime = models.DateTimeField(verbose_name="Дата/время", blank=True, null=True)
+    start = models.DateTimeField(verbose_name="Начало ", blank=True, null=True)
+    end = models.DateTimeField(verbose_name="Конец", blank=True, null=True)
+    is_check = models.BooleanField(verbose_name="Согласовано", default=True)
     is_finished = models.BooleanField(verbose_name="Выполнено", default=False)
     photo = models.ImageField(verbose_name="Фотография", blank=True, upload_to='events/')
     location_id = models.ForeignKey(Location, on_delete=models.CASCADE, verbose_name="Учреждение")
-    recipient_id = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Получатель")
+    recipient_id = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Получатель", blank=True, null=True)
+    group_id = models.ForeignKey(Group, on_delete=models.CASCADE, verbose_name="Группа", blank=True, null=True)
 
-    @property
-    def is_future(self):
-        return (self.datetime.timestamp() > datetime.now().timestamp())
+    # @property
+    # def is_future(self):
+    #     return (self.datetime.timestamp() > datetime.now().timestamp())
 
     class Meta:
         db_table = "Events"
@@ -211,8 +235,8 @@ class Event(models.Model):
     def __str__(self):
         return self.name
 
-    def get_absolute_url(self):
-        return reverse('event', args=[str(self.id)])
+    # def get_absolute_url(self):
+    #     return reverse('event', args=[str(self.id)])
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)

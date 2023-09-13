@@ -19,9 +19,10 @@ from rest_framework.authtoken.models import Token
 from rest_framework import serializers, status
 
 from django.conf import settings
-from .models import User, Department, Location  # , Recipient, Coordinator, Operator,
+from .models import User, UserGroups, Group, Department, Location, Event  # , Recipient, Coordinator, Operator,
 from .serializers import LoginSerializer, UserSerializer, CreateUserSerializer, PatchUserAdminSerializer, \
-    PatchRecipientCoordinatorSerializer
+    PatchRecipientCoordinatorSerializer, UserGroupSerializer
+from Events.serializers import EventSerializer
 from .renderers import UserJSONRenderer
 
 
@@ -50,6 +51,9 @@ def get_user_dict(user):
         info['photo'] = str(user.photo)
     if user.department_id:
         info['department_id'] = str(user.department_id)
+    if user.groups:
+        print(user.groups.values())
+        info['groups'] = user.groups.values()
     info['is_active'] = user.is_active
     info['is_check'] = user.is_check
     return info
@@ -168,7 +172,7 @@ class UsersAPIView(APIView):
 
         if user.staff == 'AD':
             profile = request.data
-            serializer = CreateUserSerializer(data=profile)
+            serializer = CreateUserSerializer(data=profile, context={'request': request})
             if serializer.is_valid():
                 serializer.save()
                 return Response(user_response(True, "User was create successful", 201, serializer.data),
@@ -208,7 +212,7 @@ class UserAPIView(APIView):
                     raise serializers.ValidationError(
                         user_response(False, "Permission denied", 403, None, "ValidationError"))
             elif user.staff == 'RE' and user.is_active and user.is_check:
-                if profile.staff == 'CO' and profile.is_active and profile.is_check:
+                if (profile.staff == 'CO' or profile == user) and profile.is_active and profile.is_check:
                     serializer = UserSerializer(instance=profile)
                 else:
                     raise serializers.ValidationError(
@@ -283,6 +287,192 @@ class UserAPIView(APIView):
         except ObjectDoesNotExist:
             raise serializers.ValidationError(user_response(False, "Wrong ID", 400, None, "ValidationError"))
 
+
+class CoordinatorsAPIView(APIView):
+    authentication_classes = (BearerToken,)
+    permission_classes = (IsAuth,)
+
+    def get(self, request, *args, **kwargs):
+        token = request.META.get('HTTP_AUTHORIZATION')
+        user_id = Token.objects.get(key=token.split(' ')[1]).user_id
+        user = User.objects.get(id=user_id)
+
+        if user.staff == 'AD':
+            users = User.objects.filter(staff='CO').order_by('id')
+        elif user.staff == 'CO' and user.is_active and user.is_check:
+            users = User.objects.filter(staff='CO', is_active=True, is_check=True).order_by('id')
+        elif user.staff == 'OP' and user.is_active and user.is_check:
+            users = User.objects.filter(staff='CO', is_active=True, is_check=True).order_by('id')
+        elif user.staff == 'RE' and user.is_active and user.is_check:
+            users = User.objects.filter(staff='CO', is_active=True, is_check=True).order_by('id')
+        else:
+            raise serializers.ValidationError(user_response(False, "Permission denied", 403, None, "ValidationError"))
+
+        serializer = UserSerializer(instance=users, many=True)
+        return Response(user_response(True, "Users were send successful", 200, serializer.data),
+                        status=status.HTTP_200_OK)
+
+
+class OperatorsAPIView(APIView):
+    authentication_classes = (BearerToken,)
+    permission_classes = (IsAuth,)
+
+    def get(self, request, *args, **kwargs):
+        token = request.META.get('HTTP_AUTHORIZATION')
+        user_id = Token.objects.get(key=token.split(' ')[1]).user_id
+        user = User.objects.get(id=user_id)
+
+        if user.staff == 'AD':
+            users = User.objects.filter(staff='OP').order_by('id')
+        elif (user.staff == 'CO' or user.staff == 'OP') and user.is_active and user.is_check:
+            users = User.objects.filter(staff='OP', is_active=True, is_check=True).order_by('id')
+        else:
+            raise serializers.ValidationError(user_response(False, "Permission denied", 403, None, "ValidationError"))
+
+        serializer = UserSerializer(instance=users, many=True)
+        return Response(user_response(True, "Users were send successful", 200, serializer.data),
+                        status=status.HTTP_200_OK)
+
+
+class RecipientsAPIView(APIView):
+    authentication_classes = (BearerToken,)
+    permission_classes = (IsAuth,)
+
+    def get(self, request, *args, **kwargs):
+        token = request.META.get('HTTP_AUTHORIZATION')
+        user_id = Token.objects.get(key=token.split(' ')[1]).user_id
+        user = User.objects.get(id=user_id)
+
+        if user.staff == 'AD' or (user.staff == 'CO' and user.is_active and user.is_check):
+            users = User.objects.filter(staff='RE').order_by('id')
+        elif user.staff == 'OP' and user.is_active and user.is_check:
+            users = User.objects.filter(staff='RE', is_active=True, is_check=True).order_by('id')
+        else:
+            raise serializers.ValidationError(user_response(False, "Permission denied", 403, None, "ValidationError"))
+
+        serializer = UserSerializer(instance=users, many=True)
+        return Response(user_response(True, "Users were send successful", 200, serializer.data),
+                        status=status.HTTP_200_OK)
+
+
+class UserGroupsAPIView(APIView):
+    authentication_classes = (BearerToken,)
+    permission_classes = (IsAuth,)
+
+    def get(self, request, *args, **kwargs):
+        token = request.META.get('HTTP_AUTHORIZATION')
+        user_id = Token.objects.get(key=token.split(' ')[1]).user_id
+        user = User.objects.get(id=user_id)
+
+        try:
+            recipient = User.objects.get(id=kwargs.get('pk'))
+            if recipient.staff != 'RE':
+                raise serializers.ValidationError(user_response(False, "User isn't a Recipient", 400, None, "ValidationError"))
+            if user.staff == 'AD':
+                groups = UserGroups.objects.filter(user_id=recipient.id).order_by('id')
+            elif user.staff == 'CO' and user.is_active and user.is_check:
+                groups = UserGroups.objects.filter(user_id=recipient.id, group_id__is_active=True).order_by('id')
+            elif user.staff == 'OP' and user.is_active and user.is_check and recipient.is_active and recipient.is_check:
+                groups = UserGroups.objects.filter(user_id=recipient.id, group_id__is_active=True).order_by('id')
+            else:
+                raise serializers.ValidationError(user_response(False, "Permission denied", 403, None, "ValidationError"))
+
+            serializer = UserGroupSerializer(instance=groups, many=True)
+            return Response(user_response(True, "Users were send successful", 200, serializer.data),
+                            status=status.HTTP_200_OK)
+
+        except ObjectDoesNotExist:
+            raise serializers.ValidationError(user_response(False, "Wrong ID", 400, None, "ValidationError"))
+
+    def post(self, request, *args, **kwargs):
+        token = request.META.get('HTTP_AUTHORIZATION')
+        user_id = Token.objects.get(key=token.split(' ')[1]).user_id
+        user = User.objects.get(id=user_id)
+
+        try:
+            recipient = User.objects.get(id=kwargs.get('pk'))
+            group_id = request.data['id']
+            group = Group.objects.get(id=group_id)
+            if recipient.staff != 'RE':
+                raise serializers.ValidationError(user_response(False, "User isn't a Recipient", 400, None, "ValidationError"))
+            if user.staff == 'AD':
+                if not UserGroups.objects.filter(group_id=group_id, user_id=recipient.id).exists():
+                    UserGroups.objects.create(group_id=group_id, user_id=recipient.id)
+                    groups = UserGroups.objects.filter(user_id=recipient.id).order_by('id')
+                else:
+                    raise serializers.ValidationError(user_response(False, "User in group already exists", 400, None, "ValidationError"))
+            elif user.staff == 'CO' and user.is_check and user.is_active and group.is_active:
+                if recipient.is_active and recipient.is_check and not UserGroups.objects.filter(group_id=group_id, user_id=recipient.id).exists():
+                    UserGroups.objects.create(group_id=group_id, user_id=recipient.id)
+                    groups = UserGroups.objects.filter(user_id=recipient.id, group_id__is_active=True).order_by('id')
+                else:
+                    raise serializers.ValidationError(user_response(False, "Recipient isn't active or check or User in group already exists", 400, None, "ValidationError"))
+            else:
+                raise serializers.ValidationError(user_response(False, "Permission denied", 403, None, "ValidationError"))
+
+            serializer = UserGroupSerializer(instance=groups, many=True)
+            return Response(user_response(True, "User was add to Group successful", 201, serializer.data),
+                            status=status.HTTP_201_CREATED)
+
+        except ObjectDoesNotExist:
+            raise serializers.ValidationError(user_response(False, "Wrong ID", 400, None, "ValidationError"))
+
+    def delete(self, request, *args, **kwargs):
+        token = request.META.get('HTTP_AUTHORIZATION')
+        user_id = Token.objects.get(key=token.split(' ')[1]).user_id
+        user = User.objects.get(id=user_id)
+
+        try:
+            recipient = User.objects.get(id=kwargs.get('pk'))
+            group_id = request.data['id']
+            group = Group.objects.get(id=group_id)
+            if recipient.staff != 'RE':
+                raise serializers.ValidationError(user_response(False, "User isn't a Recipient", 400, None, "ValidationError"))
+            if user.staff == 'AD' or (user.staff == 'CO' and user.is_check and user.is_active and group.is_active):
+                user_group = UserGroups.objects.get(group_id=group_id, user_id=recipient.id)
+                user_group.delete()
+                groups = UserGroups.objects.filter(user_id=recipient.id).order_by('id')
+            else:
+                raise serializers.ValidationError(
+                    user_response(False, "Permission denied", 403, None, "ValidationError"))
+
+            serializer = UserGroupSerializer(instance=groups, many=True)
+            return Response(user_response(True, "User was delete from Group successful", 200, serializer.data),
+                            status=status.HTTP_200_OK)
+
+        except ObjectDoesNotExist:
+            raise serializers.ValidationError(user_response(False, "Wrong ID", 400, None, "ValidationError"))
+
+
+class UserEventsAPIView(APIView):
+    authentication_classes = (BearerToken,)
+    permission_classes = (IsAuth,)
+
+    def get(self, request, *args, **kwargs):
+        token = request.META.get('HTTP_AUTHORIZATION')
+        user_id = Token.objects.get(key=token.split(' ')[1]).user_id
+        user = User.objects.get(id=user_id)
+
+        try:
+            recipient = User.objects.get(id=kwargs.get('pk'))
+            if recipient.staff != 'RE':
+                raise serializers.ValidationError(user_response(False, "User isn't a Recipient", 400, None, "ValidationError"))
+            if user.staff == 'AD' or ((user.staff == 'OP' or user.staff == 'CO') and user.is_active and user.is_check):
+                events = Event.objects.filter(recipient_id=recipient.id) | Event.objects.filter(group_id__in=recipient.groups.values('id'))
+                events.order_by('id')
+            elif user.staff == 'RE' and user.is_active and user.is_check and user == recipient:
+                events = Event.objects.filter(is_check=True, recipient_id=recipient.id) | Event.objects.filter(is_check=True, group_id__in=recipient.groups.values('id'))
+                events.order_by('id')
+            else:
+                raise serializers.ValidationError(
+                    user_response(False, "Permission denied", 403, None, "ValidationError"))
+
+            serializer = EventSerializer(instance=events, many=True)
+            return Response(user_response(True, "Events were send successful", 200, serializer.data),
+                            status=status.HTTP_200_OK)
+
+        except ObjectDoesNotExist:
+            raise serializers.ValidationError(user_response(False, "Wrong ID", 400, None, "ValidationError"))
 
 
 # class LogView(LoginView):

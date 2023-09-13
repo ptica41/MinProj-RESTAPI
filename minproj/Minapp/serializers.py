@@ -7,7 +7,7 @@ from django.contrib.auth import authenticate
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 
-from .models import User, Department  # Operator, Coordinator, Recipient
+from .models import User, UserGroups, Department  # Operator, Coordinator, Recipient
 
 
 class LoginSerializer(serializers.Serializer):
@@ -78,14 +78,22 @@ class CreateUserSerializer(serializers.ModelSerializer):  # только для 
 
     class Meta:
         model = User
-        exclude = ['is_superuser', 'groups', 'user_permissions']
+        exclude = ['is_superuser', 'user_permissions']
+
+
+    def validate(self, data):
+        if not ('email' in data) and (data['staff'] == 'OP' or data['staff'] == 'CO'):
+            raise serializers.ValidationError("При создании пользователя с ролью 'OP' или 'CO' поле 'email' обязательно")
+        if not ('department_id' in data) and data['staff'] == 'OP':
+            raise serializers.ValidationError("При создании пользователя с ролью 'OP' поле 'department_id' обязательно")
+        return data
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)
 
 
 class UserSerializer(serializers.ModelSerializer):
-    department_name = serializers.StringRelatedField(source='department_id.name')
+    # department_name = serializers.StringRelatedField(source='department_id.name')
     password = serializers.CharField(max_length=128, min_length=8, write_only=True)
     is_check = serializers.BooleanField(read_only=True)
     staff = serializers.CharField(read_only=True)
@@ -99,17 +107,18 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         # fields = '__all__'
-        exclude = ['is_superuser', 'groups', 'user_permissions']
+        exclude = ['is_superuser', 'user_permissions']
+        depth = 1
 
 
 class PatchUserAdminSerializer(serializers.ModelSerializer):
-    department_name = serializers.StringRelatedField(source='department_id.name')
+    # department_name = serializers.StringRelatedField(source='department_id.name')
     password = serializers.CharField(max_length=128, min_length=8, write_only=True)
 
     class Meta:
         model = User
         # fields = '__all__'
-        exclude = ['groups', 'user_permissions']
+        exclude = ['user_permissions']
 
 
 class PatchRecipientCoordinatorSerializer(serializers.ModelSerializer):
@@ -118,3 +127,13 @@ class PatchRecipientCoordinatorSerializer(serializers.ModelSerializer):
         model = User
         fields = ['is_check']
 
+
+class UserGroupSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = UserGroups
+        exclude = ['user']
+        depth = 1
+
+    def create(self, validated_data):
+        return UserGroups.objects.create(**validated_data)

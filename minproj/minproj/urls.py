@@ -24,12 +24,13 @@ from django.views.generic import TemplateView
 urlpatterns = [
     path('', include('Minapp.urls')),
     path('departments/', include('Departments.urls')),
+    path('groups/', include('Groups.urls')),
     # path('admin/', admin.site.urls),
     path('coordinators/', include('Coordinators.urls')),
     path('recipients/', include('Recipients.urls')),
     path('operators/', include('Operators.urls')),
     path('locations/', include('Locations.urls')),
-    # path('events/', include('Events.urls')),
+    path('events/', include('Events.urls')),
     path('swagger-ui/', TemplateView.as_view(
         template_name='swagger-ui.html',
         extra_context={'schema_url': 'openapi-schema'}

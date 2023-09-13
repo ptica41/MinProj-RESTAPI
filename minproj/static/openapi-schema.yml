@@ -9,8 +9,8 @@ paths:
       operationId: Login
       summary: Auth by username and password
       description: |
-        ### Авторизация пользователей. В ответе указывается токен и роль пользователя "staff", в зависимости от которой должен быть редирект в ЛК пользователя
-        ## При авторизации обновляется поле last_login пользователя
+        # Авторизация пользователей
+        ## В ответе указывается токен и роль пользователя "staff", в зависимости от которой должен быть редирект в ЛК пользователя
         ## Время жизни токена - 30 дней. При окончании срока действия или при отсутствии токена генерируется новый
       parameters: [ ]
       requestBody:
@@ -30,11 +30,13 @@ paths:
 
   /coordinators/signup/:
     post:
-      summary: Registration Coordinator
+      summary: Registration a coordinator
       operationId: RegistrationCoordinator
       description: |
-        ### Регистрация Координатора. При успешной регистрации Администратору в ЛК и на почту должно отправляться уведомление.
-        ### Авторизация возможна только после подтверждения Администратором. 
+        # Регистрация Координатора (is_check=False)
+        ## При успешной регистрации Администратору в ЛК и на почту должно отправляться уведомление
+        ## Авторизация возможна только после валидации Администратором (is_check=True)
+        ## В request body перечислены все возможные поля (ненужные удалить)
         ### Обязательные поля: "username", "password", "name", "surname", "phone", "email" 
         ### Уникальные поля: "username", "phone"
         ### Проверка на валидацию: "phone", "email"
@@ -57,10 +59,12 @@ paths:
   /recipients/signup/:
     post:
       operationId: RegistrationRecipient
-      summary: Registration Recipient
+      summary: Registration a recipient
       description: |
-        ### Регистрация Получателя. При успешной регистрации Координаторам в ЛК и на почту должно отправляться уведомление.
-        ### Авторизация возможна только после подтверждения одним из Координаторов. 
+        # Регистрация получателя  (is_check=False)
+        ## При успешной регистрации координаторам в ЛК и на почту должно отправляться уведомление
+        ## Авторизация возможна только после валидации координатором (is_check=True)
+        ## В request body перечислены все возможные поля (ненужные удалить)
         ### Обязательные поля: "username", "password", "name", "surname", "phone" 
         ### Уникальные поля: "username", "phone"
         ### Проверка на валидацию: "phone", "email"
@@ -83,10 +87,12 @@ paths:
   /operators/signup/:
     post:
       operationId: RegistrationOperator
-      summary: Registration Operator
+      summary: Registration a operator
       description: |
-        ### Регистрация Оператора. При успешной регистрации Администратору в ЛК и на почту должно отправляться уведомление.
-        ### Авторизация возможна только после подтверждения Администратором. 
+        # Регистрация оператора (is_check=False)
+        ## При успешной регистрации администратору в ЛК и на почту должно отправляться уведомление
+        ## Авторизация возможна только после валидации администратором (is_check=True)
+        ## В request body перечислены все возможные поля (ненужные удалить)
         ### Обязательные поля: "username", "password", "name", "surname", "phone", "email", "department_id_id" 
         ### Уникальные поля: "username", "phone"
         ### Проверка на валидацию: "phone", "email"
@@ -113,6 +119,8 @@ paths:
         - bearerAuth: [ ]
       summary: Get a user by token
       operationId: WhoAmI
+      description: |
+        ## Получение информации пользователя по токену (активные пользователи (is_active=True))
       parameters: [ ]
       responses:
         '200':
@@ -131,10 +139,10 @@ paths:
       operationId: Users
       description: |
         # Список пользователей в зависимости от роли пользователя (определяется по токену):
-        ## Админ - абсолютно все пользователи
-        ## Координаторы(валидные и активные) - активные и валидные координаторы, активные и валидные операторы, все получатели
-        ## Операторы(валидные и активные) - активные и валидные координаторы, активные и валидные операторы, активные и валидные получатели
-        ## Получатели - активные и валидные координаторы
+        ## Администратор - абсолютно все пользователи
+        ## Координаторы (валидные и активные) - активные и валидные координаторы и операторы, все получатели
+        ## Операторы (валидные и активные) - активные и валидные координаторы, операторы и получатели
+        ## Получатели (валидные и активные) - активные и валидные координаторы
       parameters: [ ]
       responses:
         '200':
@@ -148,15 +156,19 @@ paths:
       security:
         - bearerAuth: [ ]
       operationId: CreateUser
-      summary: Create User by Administrator
+      summary: Create a user by administrator
       description: |
-        ### Создание пользователя
-        ### Доступ только у Администратора. 
+        # Создание пользователя
+        ## Доступ только у администратора. 
+        ## В request body перечислены все возможные поля (ненужные удалить)
         ### Обязательные поля: "username", "password", "name", "surname", "phone", "staff", "is_superuser", "is_check", "is_active" 
         ### Уникальные поля: "username", "phone"
         ### Проверка на валидацию: "phone", "email"
+        ### При создании пользователя с ролью "OP" поля "email" и "department_id" обязательны
+        ### При создании пользователя с ролью "CO" поле "email" обязательно
         # TODO: Добавление "photo" нужно реализовать
         # TODO: Выбор роли пользователя из списка
+        # TODO: Выбор "department_id" из списка
       parameters: [ ]
       requestBody:
         content:
@@ -172,6 +184,70 @@ paths:
       tags:
         - users
 
+  /users/coordinators/:
+    get:
+      security:
+        - bearerAuth: [ ]
+      summary: Get a coordinator's list by token
+      operationId: Coordinators
+      description: |
+        # Список координаторов в зависимости от роли пользователя (определяется по токену):
+        ## Администратор - абсолютно все координаторы
+        ## Координаторы (валидные и активные) - активные и валидные координаторы
+        ## Операторы (валидные и активные) - активные и валидные координаторы
+        ## Получатели (валидные и активные) - активные и валидные координаторы
+      parameters: [ ]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - users
+
+  /users/operators/:
+    get:
+      security:
+        - bearerAuth: [ ]
+      summary: Get a operator's list by token
+      operationId: Operators
+      description: |
+        # Список операторов в зависимости от роли пользователя (определяется по токену):
+        ## Администратор - абсолютно все операторы
+        ## Координаторы (валидные и активные) - активные и валидные операторы
+        ## Операторы (валидные и активные) - активные и валидные операторы
+      parameters: [ ]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - users
+
+  /users/recipients/:
+    get:
+      security:
+        - bearerAuth: [ ]
+      summary: Get a recipient's list by token
+      operationId: Recipients
+      description: |
+        # Список получателей в зависимости от роли пользователя (определяется по токену):
+        ## Администратор - абсолютно все получатели
+        ## Координаторы (валидные и активные) - абсолютно все получатели
+        ## Операторы (валидные и активные) - активные и валидные получатели
+      parameters: [ ]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - users
+
   /users/{id}/:
     get:
       security:
@@ -180,10 +256,10 @@ paths:
       operationId: GetUser
       description: |
         # Получение профиля пользователя:
-        ## Админ - абсолютно все пользователи
-        ## Координаторы(валидные и активные) - активные и валидные координаторы, активные и валидные операторы, все получатели
-        ## Операторы(валидные и активные) - активные и валидные координаторы, активные и валидные операторы, активные и валидные получатели
-        ## Получатели - активные и валидные координаторы
+        ## Администратор - любой пользователь
+        ## Координаторы (валидные и активные) - активный и валидный координатор или оператор, любой получатель
+        ## Операторы (валидные и активные) - активный и валидный координатор или оператор, или получатель
+        ## Получатели (валидные и активные) - активный и валидный координатор, собственный профиль
       parameters:
         - in: path
           name: id
@@ -206,10 +282,10 @@ paths:
       operationId: UpdateUser
       description: |
         # Редактирование профиля пользователя:
-        ## Админ - редактирование всех полей любого пользователя
-        ## Координаторы(валидные и активные) - редактирование собственного профиля, кроме staff, is_check (только Администраторы)
-        ## Операторы(валидные и активные) - редактирование собственного профиля, кроме staff, is_check (только Администраторы)
-        ## Получатели(валидные и активные) - редактирование собственного профиля, кроме staff (админ), is_check (только Координаторы и Администраторы)
+        ## Администратор - любой пользователь
+        ## Координаторы (валидные и активные) - редактирование собственного профиля, кроме staff, is_active и is_check (только администраторы), редактирование полей is_check и is_active любого получателя
+        ## Операторы (валидные и активные) - редактирование собственного профиля, кроме staff, is_active и is_check (только администраторы)
+        ## Получатели (валидные и активные) - редактирование собственного профиля, кроме staff и is_active (только администраторы) и is_check (только администраторы и координаторы)
         ## В request body перечислены все поля (ненужные удалить)
       parameters:
         - in: path
@@ -222,7 +298,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchUserAdmin'
+              $ref: '#/components/schemas/CreateUser'
             required: true
       responses:
         '200':
@@ -239,8 +315,8 @@ paths:
       operationId: DeleteUser
       description: |
         # Удаление пользователя:
-        ## Админ - удаляет любого пользователя из БД
-        ## Координаторы, Операторы, Получатели - удаляют только собственный доступ к сервису (меняют статус is_active = False). Восстановить может только Администратор
+        ## Администратор - удаление любого пользователя из БД
+        ## Остальные валидные и активные пользователи - удаление собственного доступа к сервису (is_active=False)
       parameters:
         - in: path
           name: id
@@ -257,6 +333,132 @@ paths:
       tags:
         - users
 
+  /users/{id}/groups/:
+    get:
+      security:
+        - bearerAuth: [ ]
+      summary: Get recipient's groups by token
+      operationId: UsersGroups
+      description: |
+        # Список Групп получателя:
+        ## Администратор - все группы получателя
+        ## Координаторы (валидные и активные) - все активные группы получателя
+        ## Операторы (валидные и активные) - все активные группы активного и валидного получателя
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - users
+    post:
+      security:
+        - bearerAuth: [ ]
+      operationId: AddUserGroup
+      summary: Add a recipient to group
+      description: |
+        # Добавление получателя в группу
+        ## Администратор - добавление любого получателя в любую группу
+        ## Координаторы (валидные и активные) - добавление любого получателя в активную группу
+        ### В группу добавить можно только пользователя с ролью Получатель!
+        ### Добавляется запись в таблицу UserGroup - id пользователя берется из Uri, id группы из request body
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  example: 2
+            required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - users
+    delete:
+      security:
+        - bearerAuth: [ ]
+      summary: Delete a recipient from UserGroup
+      operationId: DeleteRecipientUserGroup
+      description: |
+        # Удаление получателя из группы
+        ## Администратор - удаление любого получателя из любой группы
+        ## Координаторы (валидные и активные) - удаление любого получателя из активной группы
+        ### Удаляется запись из таблицы UserGroup - id пользователя берется из Uri, id группы из request body
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  example: 2
+            required: true
+      responses:
+        '204':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - users
+
+  /users/{id}/events/:
+    get:
+      security:
+        - bearerAuth: [ ]
+      summary: Get user's events by token
+      operationId: UserEvents
+      description: |
+        # Список всех событий получателя:
+        ## Администратор - все события получателя
+        ## Координаторы (валидные и активные) - все события получателя
+        ## Операторы (валидные и активные) - все события получателя
+        ## Получатели (валидные и активные) - только собственные валидные (is_check=True) события
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - users
+
   /departments/:
     get:
       security:
@@ -264,7 +466,9 @@ paths:
       summary: Get a department's list by token
       operationId: Departments
       description: |
-        # Список всех ведомств. Могут смотреть все активные и валидные пользователи
+        # Список всех ведомств
+        ## Администратор
+        ## Валидные и активные пользователи
       parameters: [ ]
       responses:
         '200':
@@ -278,10 +482,10 @@ paths:
       security:
         - bearerAuth: [ ]
       operationId: CreateDepartment
-      summary: Create Department by Administrator
+      summary: Create a department by administrator
       description: |
-        ### Создание ведомства
-        ### Доступ только у Администратора.
+        # Создание ведомства
+        ## Администратор
       parameters: [ ]
       requestBody:
         content:
@@ -306,10 +510,12 @@ paths:
     get:
       security:
         - bearerAuth: [ ]
-      summary: Get a Department by id
+      summary: Get a department by id
       operationId: GetDepartment
       description: |
-        # Получение ведомства. Могут смотреть все активные и валидные пользователи
+        # Получение ведомства
+        ## Администратор
+        ## Валидные и активные пользователи
       parameters:
         - in: path
           name: id
@@ -325,15 +531,14 @@ paths:
           description: OK
       tags:
         - departments
-
     patch:
       security:
         - bearerAuth: [ ]
-      summary: Update a Department by id
+      summary: Update a department by id
       operationId: UpdateDepartment
       description: |
-        # Редактирование ведомства:
-        # Доступ только у Администратора.
+        # Редактирование ведомства
+        ## Администратор
       parameters:
         - in: path
           name: id
@@ -358,15 +563,14 @@ paths:
           description: OK
       tags:
         - departments
-
     delete:
       security:
         - bearerAuth: [ ]
-      summary: Delete a Department by id
+      summary: Delete a department by id
       operationId: DeleteUser
       description: |
-        # Удаление ведомства из БД:
-        # Доступ только у Администратора.
+        # Удаление ведомства из БД
+        ## Администратор
       parameters:
         - in: path
           name: id
@@ -387,13 +591,14 @@ paths:
     get:
       security:
         - bearerAuth: [ ]
-      summary: Get a department's locations by token
+      summary: Get department's locations by token
       operationId: DepartmentLocations
       description: |
-        # Список всех учреждений ведомства:
+        # Список учреждений ведомства
         ## Администраторы - все учреждения ведомства
-        ## Операторы (активные и валидные) - все учреждения (если оператор связан с ведомством) или активные учреждения (если оператор не связан с ведомством)
-        ## Координаторы и получатели (активные и валидные) - активные учреждения ведомства
+        ## Координаторы (валидные и активные) - активные учреждения ведомства
+        ## Операторы (валидные и активные) - все учреждения ведомства (если оператор связан с ведомством) или активные учреждения ведомства (если оператор не связан с ведомством)
+        ## Получатели (валидные и активные) - активные учреждения ведомства
       parameters:
         - in: path
           name: id
@@ -417,10 +622,11 @@ paths:
       summary: Get a location's list by token
       operationId: Locations
       description: |
-        # Список всех учреждений. 
-        ## Администраторы - все учреждения
-        ## Операторы (активные и валидные) - все учреждения, кроме неактивных учреждений других ведомств
-        ## Координаторы и получатели (активные и валидные) - активные учреждения
+        # Список всех учреждений
+        ## Администратор - все учреждения
+        ## Операторы (валидные и активные) - все учреждения, кроме неактивных учреждений других ведомств (с которыми оператор не связан)
+        ## Координаторы (валидные и активные) - активные учреждения
+        ## Получатели (валидные и активные) - активные учреждения
       parameters: [ ]
       responses:
         '200':
@@ -434,14 +640,17 @@ paths:
       security:
         - bearerAuth: [ ]
       operationId: CreateLocation
-      summary: Create Location
+      summary: Create a location
       description: |
-        ### Создание учреждения
-        ### Доступ только у Администратора и Операторов (ведомство Оператора = ведомству учреждения).
+        # Создание учреждения
+        ## Администратор - создание любого учреждения
+        ## Операторы (валидные и активные) - создание учреждения собственного ведомства
+        ## В request body перечислены все поля (ненужные удалить)
         ### Обязательные поля: "name", "address", "phone", "department_id" (это поле только для Админа, для Оператора оно будет игнорироваться)
         ### Уникальные поля: "name", "phone"
         ### Проверка на валидацию: "phone"
-        # TODO: Добавление "photo" нужно реализовать, реализация координат локации
+        # TODO: Добавление "photo" нужно реализовать
+        # TODO: Реализация координат локации
       parameters: [ ]
       requestBody:
         content:
@@ -462,14 +671,14 @@ paths:
     get:
       security:
         - bearerAuth: [ ]
-      summary: Get a Location by id
+      summary: Get a location by id
       operationId: GetLocation
       description: |
         # Получение учреждения
-        ## Администраторы - любое учреждение
-        ## Операторы (активные и валидные) - любое учреждение, кроме неактивных учреждений других ведомств
-        ## Координаторы и получатели (активные и валидные) - активное учреждение
-
+        ## Администратор - любое учреждение
+        ## Операторы (валидные и активные) - любое учреждение, кроме неактивных учреждений других ведомств (с которыми оператор не связан)
+        ## Координаторы (валидные и активные) - активное учреждение
+        ## Получатели (валидные и активные) - активное учреждение
       parameters:
         - in: path
           name: id
@@ -485,17 +694,16 @@ paths:
           description: OK
       tags:
         - locations
-
     patch:
       security:
         - bearerAuth: [ ]
-      summary: Update a Location by id
+      summary: Update a location by id
       operationId: UpdateLocation
       description: |
-        # Редактирование ведомства:
-        ## Доступ только у Администратора и Операторов (ведомство Оператора = ведомству учреждения).
-        ## Поля is_active и department_id редактировать могут только Админы
-        ### Ненужные поля удалить
+        # Редактирование учреждения
+        ## Администратор - редактирование любого учреждения
+        ## Операторы (валидные и активные) - редактирование учреждения собственного ведомства, кроме поля department_id (только администратор)
+        ## В request body перечислены все поля (ненужные удалить)
       parameters:
         - in: path
           name: id
@@ -516,16 +724,15 @@ paths:
           description: OK
       tags:
         - locations
-
     delete:
       security:
         - bearerAuth: [ ]
-      summary: Delete a Location by id
+      summary: Delete a location by id
       operationId: DeleteLocation
       description: |
         # Удаление учреждения:
-        ## Админ - удаляет любое учреждение из БД
-        ## Операторы - делают учреждение неактивным (меняют статус is_active = False). Доступ только к учреждениям собственного ведомства. Восстановить может только Администратор
+        ## Администратор - удаление любого учреждения из БД
+        ## Операторы (валидные и активные) - делают учреждение собственного ведомства неактивным (is_active=False)
       parameters:
         - in: path
           name: id
@@ -541,6 +748,377 @@ paths:
           description: OK
       tags:
         - locations
+
+  /groups/:
+    get:
+      security:
+        - bearerAuth: [ ]
+      summary: Get a group's list by token
+      operationId: Groups
+      description: |
+        # Список групп
+        ## Администратор - все группы
+        ## Координаторы (валидные и активные) - активные группы
+        ## Операторы (валидные и активные) - активные группы
+      parameters: [ ]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - groups
+    post:
+      security:
+        - bearerAuth: [ ]
+      operationId: CreateGroup
+      summary: Create a group
+      description: |
+        # Создание группы
+        ## Администратор
+        ## Координаторы (валидные и активные)
+      parameters: [ ]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Тестовая группа
+            required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - groups
+
+  /groups/{id}/:
+    get:
+      security:
+        - bearerAuth: [ ]
+      summary: Get a group by id
+      operationId: GetGroup
+      description: |
+        # Получение группы
+        ## Администратор - любая группа
+        ## Координаторы (валидные и активные) - активная группа
+        ## Операторы (валидные и активные) - активная группа
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - groups
+    patch:
+      security:
+        - bearerAuth: [ ]
+      summary: Update a group by id
+      operationId: UpdateGroup
+      description: |
+        # Редактирование группы
+        ## Администратор
+        ## Координаторы (валидные и активные)
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Группа
+                is_active:
+                  type: boolean
+                  example: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - groups
+    delete:
+      security:
+        - bearerAuth: [ ]
+      summary: Delete a group by id
+      operationId: DeleteGroup
+      description: |
+        # Удаление группы
+        ## Администратор - удаление группы из БД
+        ## Координаторы (валидные и активные) - делают группу неактивной (is_active=False)
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+      responses:
+        '204':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - groups
+
+  /groups/{id}/users/:
+    get:
+      security:
+        - bearerAuth: [ ]
+      summary: Get group's recipients by token
+      operationId: GroupUsers
+      description: |
+        # Получение списка получателей в группе
+        ## Администратор - все получатели в группе
+        ## Координаторы (валидные и активные) - все получатели в активной группе
+        ## Операторы (валидные и активные) - все активные и валидные получатели в активной группе
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - groups
+    post:
+      security:
+        - bearerAuth: [ ]
+      operationId: AddUserGroup
+      summary: Add a recipient to group
+      description: |
+        # Добавление Получателя в группу
+        ## Администратор - добавление любого получателя в любую группу
+        ## Координаторы (валидные и активные) - добавление любого получателя в активную группу
+        ### В группу добавить можно только пользователя с ролью Получатель!
+        ### Добавляется запись в таблицу UserGroup - id группы берется из Uri, id пользователя из request body
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  example: 2
+            required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - groups
+    delete:
+      security:
+        - bearerAuth: [ ]
+      summary: Delete a recipient from UserGroup
+      operationId: DeleteRecipientUserGroup
+      description: |
+        # Удаление получателя из группы
+        ## Администратор - удаление любого получателя из любой группы
+        ## Координаторы (валидные и активные) - удаление любого получателя из активной группы
+        ### Удаляется запись из таблицы UserGroup - id группы берется из Uri, id пользователя из request body
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  example: 2
+            required: true
+      responses:
+        '204':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - groups
+
+  /events/:
+    get:
+      security:
+        - bearerAuth: [ ]
+      summary: Get a events list by token
+      operationId: Events
+      description: |
+        # Получение списка событий
+        ## Администратор - все события
+        ## Операторы (валидные и активные) - все события
+        ## Координаторы (валидные и активные) - все события
+        ## Получатели (валидные и активные) - свои валидные (is_check=True) события
+      parameters: [ ]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - events
+    post:
+      security:
+        - bearerAuth: [ ]
+      operationId: CreateEvent
+      summary: Create a event
+      description: |
+        # Создание события 
+        ## Администратор - создание любого события
+        ## Операторы (валидные и активные) - создание события с учреждением собственного ведомства
+        ## В request body перечислены все поля (ненужные удалить)
+        ### Обязательные поля: "name", "location_id"
+        ### События ТОЛЬКО для получателей
+        ### Для операторов валидация полей "location_id" (учреждение должно быть активно и своего ведомства), "recipient_id" и "group_id" (получатель или группа должны быть активны и валидны)
+        ### Одно из полей "datetime", "start", "end" должно быть заполнено
+        ### ТОЛЬКО одно из полей "recipient_id", "group_id" должно быть заполнено
+        # TODO: Добавление "photo" нужно реализовать, реализация координат локации
+      parameters: [ ]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEvent'
+            required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - events
+
+  /events/{id}/:
+    get:
+      security:
+        - bearerAuth: [ ]
+      summary: Get a event by id
+      operationId: GetEvent
+      description: |
+        # Получение события
+        ## Администратор - любое событие
+        ## Операторы (валидные и активные) - любое событие
+        ## Координаторы (валидные и активные) - любое событие
+        ## Получатели (валидные и активные) - свое валидное (is_check=True) событие
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - events
+    patch:
+      security:
+        - bearerAuth: [ ]
+      summary: Update a event by id
+      operationId: UpdateEvent
+      description: |
+        # Редактирование события
+        ## Администратор - редактирование любого события
+        ## Операторы (валидные и активные) - редактирование события с учреждением собственного ведомства, кроме поля is_check
+        ## Координаторы (валидные и активные) - изменение поля is_check любого события
+        ## В request body перечислены все поля (ненужные удалить)
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEvent'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - events
+    delete:
+      security:
+        - bearerAuth: [ ]
+      summary: Delete a event by id
+      operationId: DeleteLocation
+      description: |
+        # Удаление события
+        ## Администратор - удаление любого события из БД
+        ## Операторы (валидные и активные) - удаление события с учреждением собственного ведомства
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+      responses:
+        '204':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - events
+
 
 
 components:
@@ -562,6 +1140,7 @@ components:
             password:
               type: string
               example: admin
+
     RegistrationCoordinatorAndRecipient:
       type: object
       properties:
@@ -570,7 +1149,7 @@ components:
           properties:
             username:
               type: string
-              example: test1
+              example: User1
             password:
               type: string
               example: Maksoft2023
@@ -583,15 +1162,16 @@ components:
             middle_name:
               type: string
               example: testmiddlename
+#            photo:
+#              type: string
+#              example: ""
             phone:
               type: string
               example: +79271112233
             email:
               type: string
               example: test@test.test
-    #            photo:
-    #              type: string
-    #              example: ""
+
     RegistrationOperator:
       type: object
       properties:
@@ -619,12 +1199,13 @@ components:
             email:
               type: string
               example: test@test.test
-            #            photo:
-            #              type: string
-            #              example: ""
-            department_id_id:
+#            photo:
+#              type: string
+#              example: ""
+            department_id:
               type: integer
               example: 2
+
     CreateUser:
       type: object
       properties:
@@ -642,22 +1223,22 @@ components:
           example: testsurname
         middle_name:
           type: string
-          example:
+          example: testmiddlename
         staff:
           type: string
-          example: CO
+          example: OP
         phone:
           type: string
           example: +79275555555
         email:
           type: string
           example: test@test.test
-        #            photo:
-        #              type: string
-        #              example: ""
-        department_id_id:
+#        photo:
+#          type: string
+#          example: ""
+        department_id:
           type: integer
-          example:
+          example: 1
         is_superuser:
           type: boolean
           example: False
@@ -667,48 +1248,7 @@ components:
         is_check:
           type: boolean
           example: True
-    PatchUserAdmin:
-      type: object
-      properties:
-        username:
-          type: string
-          example:
-        password:
-          type: string
-          example:
-        name:
-          type: string
-          example:
-        surname:
-          type: string
-          example:
-        middle_name:
-          type: string
-          example:
-        staff:
-          type: string
-          example:
-        phone:
-          type: string
-          example:
-        email:
-          type: string
-          example:
-        #            photo:
-        #              type: string
-        #              example: ""
-        department_id:
-          type: integer
-          example:
-        is_superuser:
-          type: boolean
-          example:
-        is_active:
-          type: boolean
-          example:
-        is_check:
-          type: boolean
-          example:
+
     CreateLocation:
       type: object
       properties:
@@ -724,6 +1264,9 @@ components:
         lon:
           type: number
           example: 45.008664
+#        photo:
+#          type: string
+#          example: ""
         phone:
           type: string
           example: +79271112233
@@ -731,11 +1274,9 @@ components:
           type: string
           example: test@test.test
         department_id:
-          type: string
+          type: integer
           example: 1
-    #            photo:
-    #              type: string
-    #              example: ""
+
     PatchLocation:
       type: object
       properties:
@@ -751,6 +1292,9 @@ components:
         lon:
           type: number
           example: 45.008664
+#        photo:
+#          type: string
+#          example: ""
         phone:
           type: string
           example: +79271112233
@@ -758,12 +1302,49 @@ components:
           type: string
           example: test@test.test
         department_id:
-          type: string
+          type: integer
           example: 1
         is_active:
           type: boolean
           example: true
-    #            photo:
-    #              type: string
-    #              example: ""
+
+    CreateEvent:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Event1
+        description:
+          type: string
+          example: Description1
+        datetime:
+          type: string
+          format: date-time
+          example: "2023-10-11T15:00:00+03:00"
+        start:
+          type: string
+          format: date-time
+          example: "2023-10-11T15:00:00+03:00"
+        end:
+          type: string
+          format: date-time
+          example: "2023-10-11T15:00:00+03:00"
+#        photo:
+#          type: string
+#          example: ""
+        is_check:
+          type: boolean
+          example: True
+        is_finished:
+          type: boolean
+          example: False
+        location_id:
+          type: integer
+          example: 2
+        recipient_id:
+          type: integer
+          example: 10
+        group_id:
+          type: integer
+          example: 1
 

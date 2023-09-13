@@ -3,8 +3,8 @@ from django.urls import path
 from django.contrib.auth.views import LogoutView
 
 # from .views import Departments, LocationsDepartment
-from .views import LoginAPIView, WhoAmIView, UsersAPIView, UserAPIView
-
+from .views import LoginAPIView, WhoAmIView, UsersAPIView, UserAPIView, CoordinatorsAPIView, OperatorsAPIView, \
+    RecipientsAPIView, UserGroupsAPIView, UserEventsAPIView
 
 urlpatterns = [
     # path('login/', LogView.as_view(template_name='login.html'), name='login'),
@@ -12,7 +12,12 @@ urlpatterns = [
     path('whoami/', WhoAmIView.as_view()),
     path('users/', UsersAPIView.as_view()),
     path('users/<int:pk>/', UserAPIView.as_view()),
+    path('users/<int:pk>/groups/', UserGroupsAPIView.as_view()),
+    path('users/<int:pk>/events/', UserEventsAPIView.as_view()),
+    path('users/coordinators/', CoordinatorsAPIView.as_view()),
+    path('users/operators/', OperatorsAPIView.as_view()),
+    path('users/recipients/', RecipientsAPIView.as_view()),
     # path('logout/', LogoutView.as_view(template_name='logout.html'), name='logout'),
     # path('departments/', Departments.as_view(), name='departments'),
     # path('departments/<int:pk>/locations', LocationsDepartment.as_view(), name='locations_department'),
-   ]
+]
