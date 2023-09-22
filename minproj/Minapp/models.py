@@ -1,24 +1,30 @@
+import uuid
+
 from django.db import models
 from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager, PermissionsMixin)
+from django.contrib.postgres.fields import ArrayField
 from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.urls import reverse
+from django.core.files.storage import FileSystemStorage
+
 from rest_framework.authtoken.models import Token
 
-import jwt
 from phonenumber_field.modelfields import PhoneNumberField
 
-from datetime import datetime, timedelta
+
+def get_file_id(instance, filename):
+    ext = filename.split('.')[-1]
+    filename = "%s.%s" % (uuid.uuid4(), ext)
+    return filename
 
 
 class UserManager(BaseUserManager):
     def create_user(self, username, name, surname, password=None, commit=True, **kwargs):
         """
-        Creates and saves a User with the given email, first name, last name
-        and password.
+        Creates and saves a User with the given email, first name, last name and password.
         """
         if not username:
             raise ValueError('Users must have an login')
@@ -40,7 +46,6 @@ class UserManager(BaseUserManager):
         surname and password.
         """
         user = self.create_user(username, name, surname, password, commit=False)
-        # user.is_staff = True
         user.is_superuser = True
         user.staff = 'AD'
         user.save(using=self._db)
@@ -92,15 +97,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     staff = models.CharField(verbose_name='Должность', max_length=2, choices=CHOICES)
     phone = PhoneNumberField(verbose_name='Телефон', unique=True)
     email = models.EmailField(verbose_name='Эл. почта', blank=True)
-    photo = models.ImageField(verbose_name='Фотография', blank=True, upload_to='users/')
+    photo = models.CharField(verbose_name='Фотография', blank=True, null=True)
     date_joined = models.DateTimeField('Дата создания', default=timezone.now)
     is_check = models.BooleanField(verbose_name='Проверка', default=False)
     is_active = models.BooleanField(verbose_name='Активный пользователь?', default=True)
     groups = models.ManyToManyField(Group, through="UserGroups")
-    # is_staff = models.BooleanField(
-    #     'staff status',
-    #     default=False,
-    #     help_text='Designates whether the user can log into this admin site.')
     department_id = models.ForeignKey(Department, on_delete=models.CASCADE, verbose_name='Ведомство', blank=True,
                                       null=True, help_text='Только для операторов')
 
@@ -115,87 +116,21 @@ class User(AbstractBaseUser, PermissionsMixin):
         return f'{self.surname} {self.get_staff_display()}'
 
 
-    # def get_absolute_url(self):
-    #     return reverse('recipient_detail', args=[str(self.id)])
-
-    # @property
-    # def token(self):
-    #     """
-    #     Позволяет получить токен пользователя путем вызова user.token, вместо
-    #     user._generate_jwt_token(). Декоратор @property выше делает это
-    #     возможным. token называется "динамическим свойством".
-    #     """
-    #     return self._generate_jwt_token()
-    #
-    # def _generate_jwt_token(self):
-    #     """
-    #     Генерирует веб-токен JSON, в котором хранится идентификатор этого
-    #     пользователя, срок действия токена составляет 1 день от создания
-    #     """
-    #     dt = datetime.now() + timedelta(days=30)
-    #
-    #     token = jwt.encode({
-    #         'id': self.pk,
-    #         'exp': dt.utcfromtimestamp(dt.timestamp())
-    #     }, settings.SECRET_KEY, algorithm='HS256')
-    #
-    #     return token
-
-
 class UserGroups(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
 
 
-# class Operator(models.Model):
-#     user_id = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-#     department_id = models.ForeignKey(Department, on_delete=models.CASCADE, blank=True, null=True)
-#     is_check = models.BooleanField(verbose_name='Проверка', default=False)
-#     is_active = models.BooleanField(verbose_name='Активный пользователь?', default=True)
-#
-#     class Meta:
-#         db_table = "Operators"
-#         verbose_name_plural = "Операторы"
-#
-#     def __str__(self):
-#         return f'{self.user_id.surname} {self.user_id.name} | {self.department_id}'
-#
-#
-# class Coordinator(models.Model):
-#     user_id = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-#     is_check = models.BooleanField(verbose_name='Проверка', default=False)
-#     is_active = models.BooleanField(verbose_name='Активный пользователь?', default=True)
-#
-#     class Meta:
-#         db_table = "Coordinators"
-#         verbose_name_plural = "Координаторы"
-#
-#     def __str__(self):
-#         return f'{self.user_id.surname} {self.user_id.name}'
-#
-#
-# class Recipient(models.Model):
-#     user_id = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-#
-#     class Meta:
-#         db_table = "Recipients"
-#         verbose_name_plural = "Получатели"
-#
-#     def __str__(self):
-#         return f'{self.user_id.surname} {self.user_id.name}'
-
-
 class Location(models.Model):
     name = models.CharField(verbose_name="Название", unique=True, max_length=255,
-                            # help_text='Введите название учреждения',
                             error_messages={'required': 'Обязательное поле',
-                                            'unique': 'Ведомство с таким названием уже существует'})
+                                            'unique': 'Учреждение с таким названием уже существует'})
     address = models.CharField(verbose_name="Адрес", max_length=255)
     lat = models.DecimalField(verbose_name="Широта", blank=True, null=True, max_digits=8, decimal_places=6)
     lon = models.DecimalField(verbose_name="Долгота", blank=True, null=True, max_digits=9, decimal_places=6)
     phone = PhoneNumberField(verbose_name='Телефон', unique=True)
     email = models.EmailField(verbose_name="Эл. почта", blank=True)
-    photo = models.ImageField(verbose_name="Фотография", blank=True, upload_to='locations/')
+    photo = models.CharField(verbose_name='Фотография', blank=True, null=True)
     is_active = models.BooleanField(default=True)
     department_id = models.ForeignKey(Department, on_delete=models.CASCADE,
                                       error_messages={'required': 'Обязательное поле'})
@@ -219,14 +154,10 @@ class Event(models.Model):
     end = models.DateTimeField(verbose_name="Конец", blank=True, null=True)
     is_check = models.BooleanField(verbose_name="Согласовано", default=True)
     is_finished = models.BooleanField(verbose_name="Выполнено", default=False)
-    photo = models.ImageField(verbose_name="Фотография", blank=True, upload_to='events/')
+    photo = ArrayField(base_field=models.CharField(verbose_name='Фотография', default=''), blank=True, null=True, default=list)
     location_id = models.ForeignKey(Location, on_delete=models.CASCADE, verbose_name="Учреждение")
     recipient_id = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Получатель", blank=True, null=True)
     group_id = models.ForeignKey(Group, on_delete=models.CASCADE, verbose_name="Группа", blank=True, null=True)
-
-    # @property
-    # def is_future(self):
-    #     return (self.datetime.timestamp() > datetime.now().timestamp())
 
     class Meta:
         db_table = "Events"
@@ -235,21 +166,8 @@ class Event(models.Model):
     def __str__(self):
         return self.name
 
-    # def get_absolute_url(self):
-    #     return reverse('event', args=[str(self.id)])
-
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_user_signal(sender, instance, created, **kwargs):
     if created:
         Token.objects.create(user=instance)
-#         if instance.staff == 'RE':
-#             Recipient.objects.create(id=instance.id, user_id=instance)
-#             instance.recipient.save()
-#         elif instance.staff == 'CO':
-#             Coordinator.objects.create(id=instance.id, user_id=instance)
-#             instance.coordinator.save()
-#         elif instance.staff == 'OP':
-#             new = Operator.objects.create(id=instance.id, user_id=instance)
-#             new.department_id_id = instance.department_id
-#             instance.operator.save()

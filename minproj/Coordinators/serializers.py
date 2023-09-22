@@ -18,10 +18,11 @@ class RegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['username', 'name', 'surname', 'middle_name', 'staff', 'phone', 'email', 'photo', 'password', 'token']
+        depth = 1
 
     def validate(self, data):
-        if data['staff'] != 'CO':
-            data['staff'] = 'CO'
+        data['staff'] = 'CO'
+        data['is_check'] = False
         return data
 
     def create(self, validated_data):

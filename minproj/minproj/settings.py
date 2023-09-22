@@ -30,8 +30,6 @@ if os.path.exists(dotenv_path):
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-
-
 DEBUG = int(os.getenv("DEBUG", default=0))
 
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS").split(" ")
@@ -45,9 +43,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
-    # 'django.contrib.sites',
-    # 'django.contrib.flatpages',
 
     'Minapp.apps.MinappConfig',
     'Coordinators.apps.CoordinatorsConfig',
@@ -64,13 +59,6 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_swagger',
     'rest_framework.authtoken',
-    # 'corsheaders',
-
-    # 'allauth',
-    # 'allauth.account',
-    # 'allauth.socialaccount',
-    # # ... include the providers you want to enable:
-    # 'allauth.socialaccount.providers.google',
 ]
 
 REST_FRAMEWORK = {
@@ -136,13 +124,6 @@ DATABASES = {
 
 AUTH_USER_MODEL = 'Minapp.User'
 
-LOGIN_URL = 'login/'
-
-LOGIN_REDIRECT_URL = '/'
-# LOGIN_REDIRECT_URL = '../../recipients/'
-
-LOGOUT_REDIRECT_URL = '../login'
-
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
@@ -194,16 +175,6 @@ STATICFILES_DIRS = [
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-SERVER_EMAIL = 'iisolovyev@gmail.com'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_HOST_USER = 'iisolovyev@gmail.com'
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-EMAIL_HOST_PASSWORD = 'qyqhqycjynurkvaj'
-EMAIL_USE_TLS = True
-# EMAIL_USE_SSL = True
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
 # CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS").split(" ")
 CORS_ORIGIN_ALLOW_ALL = True

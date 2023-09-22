@@ -1,4 +1,4 @@
-from Minapp.models import User
+from Minapp.models import User, Department
 from rest_framework import serializers
 
 
@@ -18,12 +18,14 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'name', 'surname', 'middle_name', 'staff', 'phone', 'email', 'photo', 'password', 'token',
-                  'department_id_id']
+        fields = ['username', 'name', 'surname', 'middle_name', 'staff', 'phone', 'email', 'photo', 'password', 'token', 'department_id_id']
+        depth = 1
 
     def validate(self, data):
-        if data['staff'] != 'OP':
-            data['staff'] = 'OP'
+        if not Department.objects.filter(id=data['department_id_id']).exists():
+            raise serializers.ValidationError('Wrong department_id_id')
+        data['staff'] = 'OP'
+        data['is_check'] = False
         return data
 
     def create(self, validated_data):

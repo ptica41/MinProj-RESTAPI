@@ -40,7 +40,6 @@ paths:
         ### Обязательные поля: "username", "password", "name", "surname", "phone", "email" 
         ### Уникальные поля: "username", "phone"
         ### Проверка на валидацию: "phone", "email"
-        # TODO: Добавление "photo" нужно реализовать
       parameters: [ ]
       requestBody:
         content:
@@ -68,7 +67,6 @@ paths:
         ### Обязательные поля: "username", "password", "name", "surname", "phone" 
         ### Уникальные поля: "username", "phone"
         ### Проверка на валидацию: "phone", "email"
-        # TODO: Добавление "photo" нужно реализовать
       parameters: [ ]
       requestBody:
         content:
@@ -96,7 +94,6 @@ paths:
         ### Обязательные поля: "username", "password", "name", "surname", "phone", "email", "department_id_id" 
         ### Уникальные поля: "username", "phone"
         ### Проверка на валидацию: "phone", "email"
-        # TODO: Добавление "photo" нужно реализовать
         # TODO: В поле "department_id_id" сейчас вводится id ведомства. Надо будет сделать выпадающий список ведомств из БД
       parameters: [ ]
       requestBody:
@@ -130,6 +127,61 @@ paths:
           description: OK
       tags:
         - whoami
+
+  /upload-photo/:
+    post:
+      security:
+        - bearerAuth: [ ]
+      operationId: UploadPhoto
+      summary: Add a photo to storage
+      description: |
+        # Добавление фото в локальное хранилище
+      parameters: [ ]
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - photo
+
+  /photo/{id}/:
+    get:
+      security:
+        - bearerAuth: [ ]
+      summary: Get a photo by id
+      operationId: GetPhoto
+      description: |
+        # Получение фотографии:
+        ## Любой активный и валидный пользователь
+        ### В запросе передается значение поля "photo" строки в сущности
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            example: 1a6a1dc2-b16f-41a9-aa66-f24b4e36ddda.jpg
+          required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: string
+#                format: binary
+          description: OK
+      tags:
+        - photo
 
   /users/:
     get:
@@ -166,7 +218,6 @@ paths:
         ### Проверка на валидацию: "phone", "email"
         ### При создании пользователя с ролью "OP" поля "email" и "department_id" обязательны
         ### При создании пользователя с ролью "CO" поле "email" обязательно
-        # TODO: Добавление "photo" нужно реализовать
         # TODO: Выбор роли пользователя из списка
         # TODO: Выбор "department_id" из списка
       parameters: [ ]
@@ -342,7 +393,7 @@ paths:
       description: |
         # Список Групп получателя:
         ## Администратор - все группы получателя
-        ## Координаторы (валидные и активные) - все активные группы получателя
+        ## Координаторы (валидные и активные) - все группы получателя
         ## Операторы (валидные и активные) - все активные группы активного и валидного получателя
       parameters:
         - in: path
@@ -367,7 +418,7 @@ paths:
       description: |
         # Добавление получателя в группу
         ## Администратор - добавление любого получателя в любую группу
-        ## Координаторы (валидные и активные) - добавление любого получателя в активную группу
+        ## Координаторы (валидные и активные) - добавление любого получателя в любую группу
         ### В группу добавить можно только пользователя с ролью Получатель!
         ### Добавляется запись в таблицу UserGroup - id пользователя берется из Uri, id группы из request body
       parameters:
@@ -403,7 +454,7 @@ paths:
       description: |
         # Удаление получателя из группы
         ## Администратор - удаление любого получателя из любой группы
-        ## Координаторы (валидные и активные) - удаление любого получателя из активной группы
+        ## Координаторы (валидные и активные) - удаление любого получателя из любой группы
         ### Удаляется запись из таблицы UserGroup - id пользователя берется из Uri, id группы из request body
       parameters:
         - in: path
@@ -467,8 +518,7 @@ paths:
       operationId: Departments
       description: |
         # Список всех ведомств
-        ## Администратор
-        ## Валидные и активные пользователи
+        ## Любой пользователь
       parameters: [ ]
       responses:
         '200':
@@ -649,8 +699,6 @@ paths:
         ### Обязательные поля: "name", "address", "phone", "department_id" (это поле только для Админа, для Оператора оно будет игнорироваться)
         ### Уникальные поля: "name", "phone"
         ### Проверка на валидацию: "phone"
-        # TODO: Добавление "photo" нужно реализовать
-        # TODO: Реализация координат локации
       parameters: [ ]
       requestBody:
         content:
@@ -715,7 +763,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchLocation'
+              $ref: '#/components/schemas/CreateLocation'
       responses:
         '200':
           content:
@@ -758,7 +806,7 @@ paths:
       description: |
         # Список групп
         ## Администратор - все группы
-        ## Координаторы (валидные и активные) - активные группы
+        ## Координаторы (валидные и активные) - все группы
         ## Операторы (валидные и активные) - активные группы
       parameters: [ ]
       responses:
@@ -807,7 +855,7 @@ paths:
       description: |
         # Получение группы
         ## Администратор - любая группа
-        ## Координаторы (валидные и активные) - активная группа
+        ## Координаторы (валидные и активные) - любая группа
         ## Операторы (валидные и активные) - активная группа
       parameters:
         - in: path
@@ -894,7 +942,7 @@ paths:
       description: |
         # Получение списка получателей в группе
         ## Администратор - все получатели в группе
-        ## Координаторы (валидные и активные) - все получатели в активной группе
+        ## Координаторы (валидные и активные) - все получатели в группе
         ## Операторы (валидные и активные) - все активные и валидные получатели в активной группе
       parameters:
         - in: path
@@ -919,7 +967,7 @@ paths:
       description: |
         # Добавление Получателя в группу
         ## Администратор - добавление любого получателя в любую группу
-        ## Координаторы (валидные и активные) - добавление любого получателя в активную группу
+        ## Координаторы (валидные и активные) - добавление любого получателя в группу
         ### В группу добавить можно только пользователя с ролью Получатель!
         ### Добавляется запись в таблицу UserGroup - id группы берется из Uri, id пользователя из request body
       parameters:
@@ -955,7 +1003,7 @@ paths:
       description: |
         # Удаление получателя из группы
         ## Администратор - удаление любого получателя из любой группы
-        ## Координаторы (валидные и активные) - удаление любого получателя из активной группы
+        ## Координаторы (валидные и активные) - удаление любого получателя из любой группы
         ### Удаляется запись из таблицы UserGroup - id группы берется из Uri, id пользователя из request body
       parameters:
         - in: path
@@ -1019,7 +1067,6 @@ paths:
         ### Для операторов валидация полей "location_id" (учреждение должно быть активно и своего ведомства), "recipient_id" и "group_id" (получатель или группа должны быть активны и валидны)
         ### Одно из полей "datetime", "start", "end" должно быть заполнено
         ### ТОЛЬКО одно из полей "recipient_id", "group_id" должно быть заполнено
-        # TODO: Добавление "photo" нужно реализовать, реализация координат локации
       parameters: [ ]
       requestBody:
         content:
@@ -1072,7 +1119,7 @@ paths:
         # Редактирование события
         ## Администратор - редактирование любого события
         ## Операторы (валидные и активные) - редактирование события с учреждением собственного ведомства, кроме поля is_check
-        ## Координаторы (валидные и активные) - изменение поля is_check любого события
+        ## Координаторы (валидные и активные) - изменение поля is_check любого события (остальные поля в request игнорируются)
         ## В request body перечислены все поля (ненужные удалить)
       parameters:
         - in: path
@@ -1119,8 +1166,6 @@ paths:
       tags:
         - events
 
-
-
 components:
   securitySchemes:
     bearerAuth:
@@ -1144,67 +1189,63 @@ components:
     RegistrationCoordinatorAndRecipient:
       type: object
       properties:
-        user:
-          type: object
-          properties:
-            username:
-              type: string
-              example: User1
-            password:
-              type: string
-              example: Maksoft2023
-            name:
-              type: string
-              example: testname
-            surname:
-              type: string
-              example: testsurname
-            middle_name:
-              type: string
-              example: testmiddlename
-#            photo:
-#              type: string
-#              example: ""
-            phone:
-              type: string
-              example: +79271112233
-            email:
-              type: string
-              example: test@test.test
+        username:
+          type: string
+          example: User1
+        password:
+          type: string
+          example: Maksoft2023
+        name:
+          type: string
+          example: testname
+        surname:
+          type: string
+          example: testsurname
+        middle_name:
+          type: string
+          example: testmiddlename
+        photo:
+          type: string
+          example: ab181fd1-84b2-4613-9119-c9c4504f4393.jpg
+#          format: binary
+        phone:
+          type: string
+          example: +79271112233
+        email:
+          type: string
+          example: test@test.test
 
     RegistrationOperator:
       type: object
       properties:
-        user:
-          type: object
-          properties:
-            username:
-              type: string
-              example: test1
-            password:
-              type: string
-              example: Maksoft2023
-            name:
-              type: string
-              example: testname
-            surname:
-              type: string
-              example: testsurname
-            middle_name:
-              type: string
-              example: testmiddlename
-            phone:
-              type: string
-              example: +79271112233
-            email:
-              type: string
-              example: test@test.test
-#            photo:
-#              type: string
-#              example: ""
-            department_id:
-              type: integer
-              example: 2
+        username:
+          type: string
+          example: test1
+        password:
+          type: string
+          example: Maksoft2023
+        name:
+          type: string
+          example: testname
+        surname:
+          type: string
+          example: testsurname
+        middle_name:
+          type: string
+          example: testmiddlename
+        phone:
+          type: string
+          example: +79271112233
+        email:
+          type: string
+          example: test@test.test
+        photo:
+          type: string
+          example: ab181fd1-84b2-4613-9119-c9c4504f4393.jpg
+#          format: binary
+        department_id_id:
+          type: integer
+          example: 2
 
     CreateUser:
       type: object
@@ -1233,10 +1274,11 @@ components:
         email:
           type: string
           example: test@test.test
-#        photo:
-#          type: string
-#          example: ""
-        department_id:
+        photo:
+          type: string
+          example: ab181fd1-84b2-4613-9119-c9c4504f4393.jpg
+#          format: binary
+        department_id_id:
           type: integer
           example: 1
         is_superuser:
@@ -1258,55 +1300,27 @@ components:
         address:
           type: string
           example: Penza
-        lat:
-          type: number
-          example: 53.178386
-        lon:
-          type: number
-          example: 45.008664
-#        photo:
-#          type: string
-#          example: ""
+#        lat:
+#          type: number
+#          example: 53.178386
+#        lon:
+#          type: number
+#          example: 45.008664
+        photo:
+          type: string
+          example: ab181fd1-84b2-4613-9119-c9c4504f4393.jpg
+#          format: binary
         phone:
           type: string
           example: +79271112233
         email:
           type: string
           example: test@test.test
-        department_id:
-          type: integer
-          example: 1
-
-    PatchLocation:
-      type: object
-      properties:
-        name:
-          type: string
-          example: test1
-        address:
-          type: string
-          example: Penza
-        lat:
-          type: number
-          example: 53.178386
-        lon:
-          type: number
-          example: 45.008664
-#        photo:
-#          type: string
-#          example: ""
-        phone:
-          type: string
-          example: +79271112233
-        email:
-          type: string
-          example: test@test.test
-        department_id:
+        department_id_id:
           type: integer
           example: 1
         is_active:
           type: boolean
-          example: true
 
     CreateEvent:
       type: object
@@ -1329,22 +1343,23 @@ components:
           type: string
           format: date-time
           example: "2023-10-11T15:00:00+03:00"
-#        photo:
-#          type: string
-#          example: ""
+        photo:
+          type: string
+          example: [ab181fd1-84b2-4613-9119-c9c4504f4393.jpg, e777db44-bb42-4ece-9786-23c1e000e9a2.jpg]
+#          format: binary
         is_check:
           type: boolean
           example: True
         is_finished:
           type: boolean
           example: False
-        location_id:
+        location_id_id:
           type: integer
           example: 2
-        recipient_id:
+        recipient_id_id:
           type: integer
           example: 10
-        group_id:
+        group_id_id:
           type: integer
-          example: 1
+
 
