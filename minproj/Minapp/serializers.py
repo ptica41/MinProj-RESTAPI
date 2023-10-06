@@ -11,7 +11,7 @@ from .models import User, UserGroups
 
 
 class LoginSerializer(serializers.Serializer):
-    username = serializers.CharField(max_length=255)
+    phone = serializers.CharField()
     password = serializers.CharField(max_length=128, write_only=True)
     token = serializers.CharField(max_length=255, read_only=True)
     staff = serializers.CharField(max_length=2, read_only=True)
@@ -21,11 +21,11 @@ class LoginSerializer(serializers.Serializer):
         # LoginSerializer значение valid. В случае входа пользователя в систему
         # это означает подтверждение того, что присутствуют адрес электронной
         # почты и то, что эта комбинация соответствует одному из пользователей.
-        username = data.get('username', None)
+        phone = data.get('phone', None)
         password = data.get('password', None)
 
-        if username is None:
-            raise serializers.ValidationError('Введите логин')
+        if phone is None:
+            raise serializers.ValidationError('Введите номер телефона')
 
         if password is None:
             raise serializers.ValidationError('Введите пароль')
@@ -33,9 +33,10 @@ class LoginSerializer(serializers.Serializer):
         # Метод authenticate предоставляется Django и выполняет проверку, что
         # предоставленные логин и пароль соответствуют какому-то пользователю в
         # нашей базе данных.
-        user = authenticate(username=username, password=password)
+        user = authenticate(phone=phone, password=password)
 
         if user is None:
+            print('adawd')
             raise serializers.ValidationError('Пользователь с таким логином и паролем не найден')
 
         user.last_login = datetime.datetime.now(tz=timezone.utc)
@@ -57,15 +58,16 @@ class LoginSerializer(serializers.Serializer):
         # Метод validate должен возвращать словарь проверенных данных. Это
         # данные, которые передются в т.ч. в методы create и update.
         return {
-            'username': user.username,
+            'phone': user.phone,
             'token': Token.objects.get(user=user).key,
             'staff': user.staff
         }
 
 
-class AdminUserSerializer(serializers.ModelSerializer):  # только для Администраторов
+class AdminUserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=128, min_length=8, write_only=True)
-    staff = serializers.CharField(required=True)
+    staff = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    department_id_id = serializers.IntegerField()
 
     class Meta:
         model = User
@@ -76,10 +78,27 @@ class AdminUserSerializer(serializers.ModelSerializer):  # только для �
     def validate(self, data):
 
         if self.context['request'].method == 'POST':
-            if not ('email' in data) and (data['staff'] == 'OP' or data['staff'] == 'CO'):
-                raise serializers.ValidationError("При создании пользователя с ролью 'OP' или 'CO' поле 'email' обязательно")
-            if not ('department_id_id' in data) and data['staff'] == 'OP':
-                raise serializers.ValidationError("При создании пользователя с ролью 'OP' поле 'department_id_id' обязательно")
+            if self.context['request'].user.staff == 'AD':
+                if not ('staff' in data):
+                    raise serializers.ValidationError("Поле 'staff' обязательно")
+                if not ('email' in data) and (data['staff'] == 'OP' or data['staff'] == 'CO'):
+                    raise serializers.ValidationError("При создании пользователя с ролью 'OP' или 'CO' поле 'email' обязательно")
+                if not ('department_id_id' in data) and data['staff'] == 'OP':
+                    raise serializers.ValidationError("При создании пользователя с ролью 'OP' поле 'department_id_id' обязательно")
+                if 'department_id_id' in data and data['staff'] != 'OP':
+                    raise serializers.ValidationError("Поле 'department_id_id' только при создании пользователя с ролью 'OP' ")
+            elif self.context['request'].user.staff == 'OP':
+                data['staff'] = 'RE'
+                data['is_check'] = False
+                data['is_superuser'] = False
+                data['is_active'] = True
+                data['department_id_id'] = None
+            elif self.context['request'].user.staff == 'CO':
+                data['staff'] = 'RE'
+                data['is_check'] = True
+                data['is_superuser'] = False
+                data['is_active'] = True
+                data['department_id_id'] = None
 
         return data
 

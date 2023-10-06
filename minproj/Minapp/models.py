@@ -8,7 +8,6 @@ from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.urls import reverse
-from django.core.files.storage import FileSystemStorage
 
 from rest_framework.authtoken.models import Token
 
@@ -22,30 +21,29 @@ def get_file_id(instance, filename):
 
 
 class UserManager(BaseUserManager):
-    def create_user(self, username, name, surname, password=None, commit=True, **kwargs):
+    def create_user(self, phone, name, surname, password=None, commit=True, **kwargs):
         """
-        Creates and saves a User with the given email, first name, last name and password.
+        Creates and saves a User with the given phone, name, surname and password.
         """
-        if not username:
-            raise ValueError('Users must have an login')
+        if not phone:
+            raise ValueError('Users must have a phone')
         if not name:
             raise ValueError('Users must have a first name')
         if not surname:
             raise ValueError('Users must have a surname')
 
-        user = self.model(username=username, name=name, surname=surname, **kwargs)
+        user = self.model(phone=phone, name=name, surname=surname, **kwargs)
 
         user.set_password(password)
         if commit:
             user.save(using=self._db)
         return user
 
-    def create_superuser(self, username, name, surname, password):
+    def create_superuser(self, phone, name, surname, password):
         """
-        Creates and saves a superuser with the given username, name,
-        surname and password.
+        Creates and saves a superuser with the given phone, name, surname and password.
         """
-        user = self.create_user(username, name, surname, password, commit=False)
+        user = self.create_user(phone, name, surname, password, commit=False)
         user.is_superuser = True
         user.staff = 'AD'
         user.save(using=self._db)
@@ -61,6 +59,7 @@ class Department(models.Model):
     class Meta:
         db_table = "Departments"
         verbose_name_plural = "Ведомства"
+        ordering = ["-id"]
 
     def __str__(self):
         return self.name
@@ -75,6 +74,7 @@ class Group(models.Model):
     class Meta:
         db_table = "Groups"
         verbose_name_plural = "Группы"
+        ordering = ["-id"]
 
     def __str__(self):
         return self.name
@@ -90,12 +90,11 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     objects = UserManager()
 
-    username = models.CharField(verbose_name='Логин', max_length=50, unique=True, db_index=True)
+    phone = PhoneNumberField(verbose_name='Телефон', unique=True)
     name = models.CharField(verbose_name='Имя', max_length=255)
     surname = models.CharField(verbose_name='Фамилия', max_length=255)
     middle_name = models.CharField(verbose_name='Отчество', max_length=255, blank=True, null=True)
     staff = models.CharField(verbose_name='Должность', max_length=2, choices=CHOICES)
-    phone = PhoneNumberField(verbose_name='Телефон', unique=True)
     email = models.EmailField(verbose_name='Эл. почта', blank=True)
     photo = models.CharField(verbose_name='Фотография', blank=True, null=True)
     date_joined = models.DateTimeField('Дата создания', default=timezone.now)
@@ -105,12 +104,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     department_id = models.ForeignKey(Department, on_delete=models.CASCADE, verbose_name='Ведомство', blank=True,
                                       null=True, help_text='Только для операторов')
 
-    USERNAME_FIELD = 'username'
+    USERNAME_FIELD = 'phone'
     REQUIRED_FIELDS = ['name', 'surname']
 
     class Meta:
         db_table = "Users"
         verbose_name_plural = "Пользователи"
+        ordering = ["-id"]
 
     def __str__(self):
         return f'{self.surname} {self.get_staff_display()}'
@@ -119,6 +119,9 @@ class User(AbstractBaseUser, PermissionsMixin):
 class UserGroups(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
+
+    class Meta:
+        ordering = ["-id"]
 
 
 class Location(models.Model):
@@ -138,6 +141,7 @@ class Location(models.Model):
     class Meta:
         db_table = "Locations"
         verbose_name_plural = "Учреждения"
+        ordering = ["-id"]
 
     def __str__(self):
         return self.name
@@ -154,7 +158,7 @@ class Event(models.Model):
     end = models.DateTimeField(verbose_name="Конец", blank=True, null=True)
     is_check = models.BooleanField(verbose_name="Согласовано", default=True)
     is_finished = models.BooleanField(verbose_name="Выполнено", default=False)
-    photo = ArrayField(base_field=models.CharField(verbose_name='Фотография', default=''), blank=True, null=True, default=list)
+    photo = ArrayField(base_field=models.CharField(verbose_name='Фотография'), blank=True, null=True)
     location_id = models.ForeignKey(Location, on_delete=models.CASCADE, verbose_name="Учреждение")
     recipient_id = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Получатель", blank=True, null=True)
     group_id = models.ForeignKey(Group, on_delete=models.CASCADE, verbose_name="Группа", blank=True, null=True)
@@ -162,6 +166,7 @@ class Event(models.Model):
     class Meta:
         db_table = "Events"
         verbose_name_plural = "Мероприятия"
+        ordering = ["-id"]
 
     def __str__(self):
         return self.name

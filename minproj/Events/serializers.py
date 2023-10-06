@@ -8,6 +8,7 @@ class EventSerializer(serializers.ModelSerializer):
     location_id_id = serializers.IntegerField()
     recipient_id_id = serializers.IntegerField(allow_null=True)
     group_id_id = serializers.IntegerField(allow_null=True)
+    photo = serializers.ListField(child=serializers.CharField(), allow_null=True)
 
     class Meta:
         model = Event
@@ -16,11 +17,11 @@ class EventSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         if self.context['request'].method == 'POST':
-            if ('recipient_id_id' in data) and ('group_id_id' in data):
+            if ('recipient_id_id' in data and data['recipient_id_id'] != None) and ('group_id_id' in data and data['group_id_id'] != None):
                 raise serializers.ValidationError("Only recipient_id_id or group_id_id must be")
-            if not (('recipient_id_id' in data) or ('group_id_id' in data)):
+            if not (('recipient_id_id' in data and data['recipient_id_id'] != None) or ('group_id_id' in data and data['group_id_id'] != None)):
                 raise serializers.ValidationError("Recipient_id_id or group_id_id is required")
-            if not (('datetime' in data) or ('start' in data) or ('end' in data)):
+            if not (('datetime' in data and data['datetime'] != None) or ('start' in data and data['start'] != None) or ('end' in data and data['end'] != None)):
                 raise serializers.ValidationError("Datetime or start or end is required")
             if not Location.objects.filter(id=data.get('location_id_id', None)).exists():
                 raise serializers.ValidationError('Wrong location_id_id')
@@ -29,14 +30,14 @@ class EventSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Location's Department must be equal Operator's Department")
             if user.staff == 'OP' and not Location.objects.get(id=data.get('location_id_id', None)).is_active:
                 raise serializers.ValidationError("Location isn't active")
-            if 'recipient_id_id' in data:
+            if 'recipient_id_id' in data and data['recipient_id_id'] != None:
                 if not User.objects.filter(id=data['recipient_id_id']).exists():
                     raise serializers.ValidationError("Id in request isn't a recipient's id")
                 if User.objects.get(id=data['recipient_id_id']).staff != 'RE':
                     raise serializers.ValidationError("Id in request isn't a recipient's id")
                 if user.staff == 'OP' and not (User.objects.get(id=data['recipient_id_id']).is_active and User.objects.get(id=data['recipient_id_id']).is_check):
                     raise serializers.ValidationError("Recipient isn't active or check")
-            if 'group_id_id' in data:
+            if 'group_id_id' in data and data['group_id_id'] != None:
                 if not Group.objects.filter(id=data['group_id_id']).exists():
                     raise serializers.ValidationError('Wrong group_id_id')
                 if user.staff == 'OP' and not Group.objects.get(id=data['group_id_id']).is_active:
@@ -58,6 +59,7 @@ class AdminEventSerializer(serializers.ModelSerializer):
     location_id_id = serializers.IntegerField()
     recipient_id_id = serializers.IntegerField(allow_null=True, required=False)
     group_id_id = serializers.IntegerField(allow_null=True, required=False)
+    photo = serializers.ListField(child=serializers.CharField(), allow_null=True)
 
     class Meta:
         model = Event
@@ -66,20 +68,20 @@ class AdminEventSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         if self.context['request'].method == 'POST':
-            if ('recipient_id_id' in data) and ('group_id_id' in data):
-                raise serializers.ValidationError("Only recipient_id or group_id must be")
-            if not (('recipient_id_id' in data) or ('group_id_id' in data)):
+            if ('recipient_id_id' in data and data['recipient_id_id'] != None) and ('group_id_id' in data and data['group_id_id'] != None):
+                raise serializers.ValidationError("Only recipient_id_id or group_id_id must be")
+            if not (('recipient_id_id' in data and data['recipient_id_id'] != None) or ('group_id_id' in data and data['group_id_id'] != None)):
                 raise serializers.ValidationError("Recipient_id_id or group_id_id is required")
-            if not (('datetime' in data) or ('start' in data) or ('end' in data)):
+            if not (('datetime' in data and data['datetime'] != None) or ('start' in data and data['start'] != None) or ('end' in data and data['end'] != None)):
                 raise serializers.ValidationError("Datetime or start or end is required")
             if not Location.objects.filter(id=data.get('location_id_id', None)).exists():
                 raise serializers.ValidationError('Wrong location_id_id')
-            if 'recipient_id_id' in data:
+            if 'recipient_id_id' in data and data['recipient_id_id'] != None:
                 if not User.objects.filter(id=data['recipient_id_id']).exists():
                     raise serializers.ValidationError("Id in request isn't a recipient's id")
                 if User.objects.get(id=data['recipient_id_id']).staff != 'RE':
                     raise serializers.ValidationError("Id in request isn't a recipient's id")
-            if ('group_id_id' in data) and not Group.objects.filter(id=data['group_id_id']).exists():
+            if ('group_id_id' in data and data['group_id_id'] != None) and not Group.objects.filter(id=data['group_id_id']).exists():
                 raise serializers.ValidationError('Wrong group_id_id')
         return data
 

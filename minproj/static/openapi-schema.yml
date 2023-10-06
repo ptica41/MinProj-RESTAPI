@@ -7,7 +7,7 @@ paths:
   /auth/signin/:
     post:
       operationId: Login
-      summary: Auth by username and password
+      summary: Auth by phone and password
       description: |
         # Авторизация пользователей
         ## В ответе указывается токен и роль пользователя "staff", в зависимости от которой должен быть редирект в ЛК пользователя
@@ -28,6 +28,119 @@ paths:
       tags:
         - login
 
+  /password-reset/:
+    post:
+      operationId: PasswordReset
+      summary: Reset password
+      description: |
+        # Все пользователи
+        ## Возвращает staff (роль юзера), user_id и key для сброса пароля по номеру телефона, если в БД есть пользователь с данным номером телефона
+        ## Время жизни key 7 дней
+      parameters: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+                type: object
+                properties:
+                  phone:
+                    type: string
+                    example: "+79275555555"
+                    required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - reset password
+
+  /password-reset/confirm/:
+    post:
+      operationId: PasswordResetConfirm
+      summary: Confirm reset password
+      description: |
+        # Все пользователи
+        # Смена пароля по значению key
+      parameters: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+                  example: "Maksoft2023"
+                token:
+                  type: string
+                  example: "25d92626590a9e088fb4f"
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - reset password
+
+  /password-reset/list/:
+    get:
+      security:
+        - bearerAuth: [ ]
+      operationId: PasswordResetList
+      summary: Request's list to reset password
+      description: |
+        # Список запросов на смену пароля
+        ## Администратор - запросы от Координаторов и Операторов
+        ## Координаторы (валидные и активные) - запросы от Получателей
+      parameters:
+        - in: query
+          name: ordering
+          schema:
+            type: string
+          description: Order by id, created_at, key, ip_address, user_agent, user_id
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return
+        - in: query
+          name: offset
+          schema:
+            type: integer
+          description: The number of items to skip before starting to collect the result set
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: The page of items
+        - in: query
+          name: created_at__lte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by less created_at
+        - in: query
+          name: created_at__gte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by great created_at
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - reset password
+
   /coordinators/signup/:
     post:
       summary: Registration a coordinator
@@ -37,8 +150,8 @@ paths:
         ## При успешной регистрации Администратору в ЛК и на почту должно отправляться уведомление
         ## Авторизация возможна только после валидации Администратором (is_check=True)
         ## В request body перечислены все возможные поля (ненужные удалить)
-        ### Обязательные поля: "username", "password", "name", "surname", "phone", "email" 
-        ### Уникальные поля: "username", "phone"
+        ### Обязательные поля: "phone", "password", "name", "surname", "email" 
+        ### Уникальные поля: "phone"
         ### Проверка на валидацию: "phone", "email"
       parameters: [ ]
       requestBody:
@@ -64,8 +177,8 @@ paths:
         ## При успешной регистрации координаторам в ЛК и на почту должно отправляться уведомление
         ## Авторизация возможна только после валидации координатором (is_check=True)
         ## В request body перечислены все возможные поля (ненужные удалить)
-        ### Обязательные поля: "username", "password", "name", "surname", "phone" 
-        ### Уникальные поля: "username", "phone"
+        ### Обязательные поля: "phone", "password", "name", "surname"
+        ### Уникальные поля: "phone"
         ### Проверка на валидацию: "phone", "email"
       parameters: [ ]
       requestBody:
@@ -91,8 +204,8 @@ paths:
         ## При успешной регистрации администратору в ЛК и на почту должно отправляться уведомление
         ## Авторизация возможна только после валидации администратором (is_check=True)
         ## В request body перечислены все возможные поля (ненужные удалить)
-        ### Обязательные поля: "username", "password", "name", "surname", "phone", "email", "department_id_id" 
-        ### Уникальные поля: "username", "phone"
+        ### Обязательные поля: "phone", "password", "name", "surname", "email", "department_id_id" 
+        ### Уникальные поля: "phone"
         ### Проверка на валидацию: "phone", "email"
         # TODO: В поле "department_id_id" сейчас вводится id ведомства. Надо будет сделать выпадающий список ведомств из БД
       parameters: [ ]
@@ -135,7 +248,7 @@ paths:
       operationId: UploadPhoto
       summary: Add a photo to storage
       description: |
-        # Добавление фото в локальное хранилище
+        # Добавление фотографий в локальное хранилище
       parameters: [ ]
       requestBody:
         content:
@@ -143,9 +256,11 @@ paths:
             schema:
               type: object
               properties:
-                file:
-                  type: string
-                  format: binary
+                  my-attachment:
+                      type: array
+                      items:
+                          format: binary
+                          type: string
       responses:
         '201':
           content:
@@ -170,7 +285,7 @@ paths:
           name: id
           schema:
             type: string
-            example: 1a6a1dc2-b16f-41a9-aa66-f24b4e36ddda.jpg
+            example: http://116.202.240.109:8080/media/7c0ccda4-9b1f-480d-b025-143766289624.jpg
           required: true
       responses:
         '200':
@@ -195,7 +310,70 @@ paths:
         ## Координаторы (валидные и активные) - активные и валидные координаторы и операторы, все получатели
         ## Операторы (валидные и активные) - активные и валидные координаторы, операторы и получатели
         ## Получатели (валидные и активные) - активные и валидные координаторы
-      parameters: [ ]
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by surname
+        - in: query
+          name: ordering
+          schema:
+            type: string
+          description: Order by id, name, surname, middle_name, staff, email, phone, date_joined, is_check, is_active, groups, department_id, last_login
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return
+        - in: query
+          name: offset
+          schema:
+            type: integer
+          description: The number of items to skip before starting to collect the result set
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: The page of items
+        - in: query
+          name: is_active
+          schema:
+            type: boolean
+          description: filter by is_active
+        - in: query
+          name: is_check
+          schema:
+            type: boolean
+          description: filter by is_check
+        - in: query
+          name: date_joined__lte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by less date_joined
+        - in: query
+          name: date_joined__gte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by great date_joined
+        - in: query
+          name: last_login__lte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by less last_login
+        - in: query
+          name: last_login__gte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by great last_login
       responses:
         '200':
           content:
@@ -208,13 +386,15 @@ paths:
       security:
         - bearerAuth: [ ]
       operationId: CreateUser
-      summary: Create a user by administrator
+      summary: Create a user
       description: |
         # Создание пользователя
-        ## Доступ только у администратора. 
+        ## Администратор - создание пользователей с любой ролью
+        ## Оператор - создание получателей (staff = 'RE', is_check = False)
+        ## Координатор - создание получателей (staff = 'RE', is_check = True)
         ## В request body перечислены все возможные поля (ненужные удалить)
-        ### Обязательные поля: "username", "password", "name", "surname", "phone", "staff", "is_superuser", "is_check", "is_active" 
-        ### Уникальные поля: "username", "phone"
+        ### Обязательные поля: "phone", "password", "name", "surname", "staff", "is_superuser", "is_check", "is_active" 
+        ### Уникальные поля: "phone"
         ### Проверка на валидацию: "phone", "email"
         ### При создании пользователя с ролью "OP" поля "email" и "department_id" обязательны
         ### При создании пользователя с ролью "CO" поле "email" обязательно
@@ -247,7 +427,70 @@ paths:
         ## Координаторы (валидные и активные) - активные и валидные координаторы
         ## Операторы (валидные и активные) - активные и валидные координаторы
         ## Получатели (валидные и активные) - активные и валидные координаторы
-      parameters: [ ]
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by surname
+        - in: query
+          name: ordering
+          schema:
+            type: string
+          description: Order by id, name, surname, middle_name, staff, email, phone, date_joined, is_check, is_active, groups, department_id, last_login
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return
+        - in: query
+          name: offset
+          schema:
+            type: integer
+          description: The number of items to skip before starting to collect the result set
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: The page of items
+        - in: query
+          name: is_active
+          schema:
+            type: boolean
+          description: filter by is_active
+        - in: query
+          name: is_check
+          schema:
+            type: boolean
+          description: filter by is_check
+        - in: query
+          name: date_joined__lte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by less date_joined
+        - in: query
+          name: date_joined__gte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by great date_joined
+        - in: query
+          name: last_login__lte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by less last_login
+        - in: query
+          name: last_login__gte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by great last_login
       responses:
         '200':
           content:
@@ -268,7 +511,70 @@ paths:
         ## Администратор - абсолютно все операторы
         ## Координаторы (валидные и активные) - активные и валидные операторы
         ## Операторы (валидные и активные) - активные и валидные операторы
-      parameters: [ ]
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by surname
+        - in: query
+          name: ordering
+          schema:
+            type: string
+          description: Order by id, name, surname, middle_name, staff, email, phone, date_joined, is_check, is_active, groups, department_id, last_login
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return
+        - in: query
+          name: offset
+          schema:
+            type: integer
+          description: The number of items to skip before starting to collect the result set
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: The page of items
+        - in: query
+          name: is_active
+          schema:
+            type: boolean
+          description: filter by is_active
+        - in: query
+          name: is_check
+          schema:
+            type: boolean
+          description: filter by is_check
+        - in: query
+          name: date_joined__lte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by less date_joined
+        - in: query
+          name: date_joined__gte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by great date_joined
+        - in: query
+          name: last_login__lte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by less last_login
+        - in: query
+          name: last_login__gte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by great last_login
       responses:
         '200':
           content:
@@ -289,7 +595,70 @@ paths:
         ## Администратор - абсолютно все получатели
         ## Координаторы (валидные и активные) - абсолютно все получатели
         ## Операторы (валидные и активные) - активные и валидные получатели
-      parameters: [ ]
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by surname
+        - in: query
+          name: ordering
+          schema:
+            type: string
+          description: Order by id, name, surname, middle_name, staff, email, phone, date_joined, is_check, is_active, groups, department_id, last_login
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return
+        - in: query
+          name: offset
+          schema:
+            type: integer
+          description: The number of items to skip before starting to collect the result set
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: The page of items
+        - in: query
+          name: is_active
+          schema:
+            type: boolean
+          description: filter by is_active
+        - in: query
+          name: is_check
+          schema:
+            type: boolean
+          description: filter by is_check
+        - in: query
+          name: date_joined__lte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by less date_joined
+        - in: query
+          name: date_joined__gte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by great date_joined
+        - in: query
+          name: last_login__lte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by less last_login
+        - in: query
+          name: last_login__gte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by great last_login
       responses:
         '200':
           content:
@@ -402,6 +771,21 @@ paths:
             type: integer
             example: 1
           required: true
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return
+        - in: query
+          name: offset
+          schema:
+            type: integer
+          description: The number of items to skip before starting to collect the result set
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: The page of items
       responses:
         '200':
           content:
@@ -501,6 +885,21 @@ paths:
             type: integer
             example: 1
           required: true
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return
+        - in: query
+          name: offset
+          schema:
+            type: integer
+          description: The number of items to skip before starting to collect the result set
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: The page of items
       responses:
         '200':
           content:
@@ -656,6 +1055,21 @@ paths:
             type: integer
             example: 1
           required: true
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return
+        - in: query
+          name: offset
+          schema:
+            type: integer
+          description: The number of items to skip before starting to collect the result set
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: The page of items
       responses:
         '200':
           content:
@@ -677,7 +1091,37 @@ paths:
         ## Операторы (валидные и активные) - все учреждения, кроме неактивных учреждений других ведомств (с которыми оператор не связан)
         ## Координаторы (валидные и активные) - активные учреждения
         ## Получатели (валидные и активные) - активные учреждения
-      parameters: [ ]
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by name
+        - in: query
+          name: ordering
+          schema:
+            type: string
+          description: Order by id, name, address, email, phone, is_active, department_id
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return
+        - in: query
+          name: offset
+          schema:
+            type: integer
+          description: The number of items to skip before starting to collect the result set
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: The page of items
+        - in: query
+          name: is_active
+          schema:
+            type: boolean
+          description: filter by is_active
       responses:
         '200':
           content:
@@ -808,7 +1252,37 @@ paths:
         ## Администратор - все группы
         ## Координаторы (валидные и активные) - все группы
         ## Операторы (валидные и активные) - активные группы
-      parameters: [ ]
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by name
+        - in: query
+          name: ordering
+          schema:
+            type: string
+          description: Order by id, name, is_active
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return
+        - in: query
+          name: offset
+          schema:
+            type: integer
+          description: The number of items to skip before starting to collect the result set
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: The page of items
+        - in: query
+          name: is_active
+          schema:
+            type: boolean
+          description: filter by is_active
       responses:
         '200':
           content:
@@ -951,6 +1425,21 @@ paths:
             type: integer
             example: 1
           required: true
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return
+        - in: query
+          name: offset
+          schema:
+            type: integer
+          description: The number of items to skip before starting to collect the result set
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: The page of items
       responses:
         '200':
           content:
@@ -1043,7 +1532,102 @@ paths:
         ## Операторы (валидные и активные) - все события
         ## Координаторы (валидные и активные) - все события
         ## Получатели (валидные и активные) - свои валидные (is_check=True) события
-      parameters: [ ]
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by name
+        - in: query
+          name: ordering
+          schema:
+            type: string
+          description: Order by id, name, description, is_check, is_finished, datetime, start, end, location_id, recipient_id, group_id
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return
+        - in: query
+          name: offset
+          schema:
+            type: integer
+          description: The number of items to skip before starting to collect the result set
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: The page of items
+        - in: query
+          name: is_finished
+          schema:
+            type: boolean
+          description: filter by is_finished
+        - in: query
+          name: is_check
+          schema:
+            type: boolean
+          description: filter by is_check
+        - in: query
+          name: datetime__lte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by less datetime
+        - in: query
+          name: datetime__gte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by great datetime
+        - in: query
+          name: start__lte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by less start
+        - in: query
+          name: start__gte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by great start
+        - in: query
+          name: end__lte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by less end
+        - in: query
+          name: end__gte
+          schema:
+            type: string
+            format: date
+            example: "2023-10-11"
+          description: filter by great end
+        - in: query
+          name: location_id_id
+          schema:
+            type: integer
+            example: 1
+          description: filter by location_id_id
+        - in: query
+          name: recipient_id_id
+          schema:
+            type: integer
+            example: 1
+          description: filter by recipient_id_id
+        - in: query
+          name: group_id_id
+          schema:
+            type: integer
+            example: 1
+          description: filter by group_id_id
       responses:
         '200':
           content:
@@ -1179,19 +1763,19 @@ components:
         user:
           type: object
           properties:
-            username:
+            phone:
               type: string
-              example: admin
+              example: "+79998887766"
             password:
               type: string
-              example: admin
+              example: Maksoft2023
 
     RegistrationCoordinatorAndRecipient:
       type: object
       properties:
-        username:
+        phone:
           type: string
-          example: User1
+          example: "+79998887766"
         password:
           type: string
           example: Maksoft2023
@@ -1206,11 +1790,7 @@ components:
           example: testmiddlename
         photo:
           type: string
-          example: ab181fd1-84b2-4613-9119-c9c4504f4393.jpg
-#          format: binary
-        phone:
-          type: string
-          example: +79271112233
+          example: http://116.202.240.109:8080/media/7c0ccda4-9b1f-480d-b025-143766289624.jpg
         email:
           type: string
           example: test@test.test
@@ -1218,9 +1798,9 @@ components:
     RegistrationOperator:
       type: object
       properties:
-        username:
+        phone:
           type: string
-          example: test1
+          example: "+79998887766"
         password:
           type: string
           example: Maksoft2023
@@ -1233,16 +1813,12 @@ components:
         middle_name:
           type: string
           example: testmiddlename
-        phone:
-          type: string
-          example: +79271112233
         email:
           type: string
           example: test@test.test
         photo:
           type: string
-          example: ab181fd1-84b2-4613-9119-c9c4504f4393.jpg
-#          format: binary
+          example: http://116.202.240.109:8080/media/7c0ccda4-9b1f-480d-b025-143766289624.jpg
         department_id_id:
           type: integer
           example: 2
@@ -1250,9 +1826,9 @@ components:
     CreateUser:
       type: object
       properties:
-        username:
+        phone:
           type: string
-          example: testusername
+          example: "+79998887766"
         password:
           type: string
           example: Maksoft2023
@@ -1268,16 +1844,12 @@ components:
         staff:
           type: string
           example: OP
-        phone:
-          type: string
-          example: +79275555555
         email:
           type: string
           example: test@test.test
         photo:
           type: string
-          example: ab181fd1-84b2-4613-9119-c9c4504f4393.jpg
-#          format: binary
+          example: http://116.202.240.109:8080/media/7c0ccda4-9b1f-480d-b025-143766289624.jpg
         department_id_id:
           type: integer
           example: 1
@@ -1308,11 +1880,10 @@ components:
 #          example: 45.008664
         photo:
           type: string
-          example: ab181fd1-84b2-4613-9119-c9c4504f4393.jpg
-#          format: binary
+          example: http://116.202.240.109:8080/media/7c0ccda4-9b1f-480d-b025-143766289624.jpg
         phone:
           type: string
-          example: +79271112233
+          example: "+79998887766"
         email:
           type: string
           example: test@test.test
@@ -1345,8 +1916,7 @@ components:
           example: "2023-10-11T15:00:00+03:00"
         photo:
           type: string
-          example: [ab181fd1-84b2-4613-9119-c9c4504f4393.jpg, e777db44-bb42-4ece-9786-23c1e000e9a2.jpg]
-#          format: binary
+          example: [http://116.202.240.109:8080/media/7c0ccda4-9b1f-480d-b025-143766289624.jpg, http://116.202.240.109:8080/media/0f5fc3c0-5dde-4c0d-b86e-c9fb1f9040fc.jpg]
         is_check:
           type: boolean
           example: True

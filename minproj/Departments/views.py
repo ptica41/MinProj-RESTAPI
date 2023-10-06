@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import AllowAny
+from rest_framework.pagination import LimitOffsetPagination
 
 from .serializers import DepartmentSerializer
 from Minapp.views import user_response, BearerToken, IsAuth
@@ -18,7 +19,7 @@ class DepartmentsAPIView(APIView):
     permission_classes = (AllowAny,)
 
     def get(self, request, *args, **kwargs):
-        departments = Department.objects.all().order_by('id')
+        departments = Department.objects.all()
         serializer = DepartmentSerializer(instance=departments, many=True)
         return Response(user_response(True, "Departments were send successful", 200, serializer.data), status=status.HTTP_200_OK)
 
@@ -103,7 +104,7 @@ class DepartmentAPIView(APIView):
             raise serializers.ValidationError(user_response(False, "Wrong ID", 400, None, "ValidationError"))
 
 
-class DepartmentLocationsAPIView(APIView):
+class DepartmentLocationsAPIView(APIView, LimitOffsetPagination):
     authentication_classes = (BearerToken,)
     permission_classes = (IsAuth,)
 
@@ -115,16 +116,18 @@ class DepartmentLocationsAPIView(APIView):
         try:
             department = Department.objects.get(id=kwargs.get('pk'))
             if user.staff == 'AD':
-                locations = Location.objects.filter(department_id=department).order_by('id')
+                locations = Location.objects.filter(department_id=department)
             elif user.staff == 'OP' and user.is_active and user.is_check:
-                locations = Location.objects.exclude(~Q(department_id=user.department_id), is_active=False).filter(department_id=department).order_by('id')
+                locations = Location.objects.exclude(~Q(department_id=user.department_id), is_active=False).filter(department_id=department)
             elif user.is_active and user.is_check:
-                locations = Location.objects.filter(department_id=department, is_active=True).order_by('id')
+                locations = Location.objects.filter(department_id=department, is_active=True)
             else:
                 raise serializers.ValidationError(user_response(False, "Permission denied", 403, None, "ValidationError"))
 
-            serializer = LocationSerializer(instance=locations, many=True)
-            return Response(user_response(True, "Locations were send successful", 200, serializer.data), status=status.HTTP_200_OK)
+            results = self.paginate_queryset(locations, request, view=self)
+            serializer = LocationSerializer(instance=results, many=True)
+            res_dict = {"count": self.count, "next": self.get_next_link(), "previous": self.get_previous_link(), "results": serializer.data}
+            return Response(user_response(True, "Locations were send successful", 200, res_dict), status=status.HTTP_200_OK)
 
         except ObjectDoesNotExist:
             raise serializers.ValidationError(user_response(False, "Wrong ID", 400, None, "ValidationError"))

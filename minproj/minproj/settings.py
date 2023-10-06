@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'Events.apps.EventsConfig',
     'Departments.apps.DepartmentsConfig',
     'Groups.apps.GroupsConfig',
+    'ResetPasswords.apps.ResetpasswordsConfig',
 
     'phonenumber_field',
     'django_filters',
@@ -59,13 +60,20 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_swagger',
     'rest_framework.authtoken',
+
+    'django_rest_passwordreset',
 ]
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',  # <-- And here
-    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': ['rest_framework.authentication.TokenAuthentication', ],
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend',
+                                'rest_framework.filters.SearchFilter',
+                                'rest_framework.filters.OrderingFilter'],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 100
 }
+
+DJANGO_REST_LOOKUP_FIELD = 'phone'
 
 SITE_ID = 1
 

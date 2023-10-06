@@ -3,6 +3,7 @@ from django.urls import path
 from .views import LoginAPIView, WhoAmIView, UsersAPIView, UserAPIView, CoordinatorsAPIView, OperatorsAPIView, \
     RecipientsAPIView, UserGroupsAPIView, UserEventsAPIView, GetPhoto, UploadPhoto
 
+
 urlpatterns = [
     path('auth/signin/', LoginAPIView.as_view()),
     path('whoami/', WhoAmIView.as_view()),
