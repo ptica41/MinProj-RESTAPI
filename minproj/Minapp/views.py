@@ -23,35 +23,34 @@ from .serializers import LoginSerializer, UserSerializer, AdminUserSerializer, P
 from Events.serializers import EventSerializer
 
 
-def get_user_dict(user):
-    info = {}
-    info['id'] = str(user.id)
-    if user.last_login:
-        info['last_login'] = str(user.last_login.astimezone(pytz.timezone(settings.TIME_ZONE)))
-    if user.date_joined:
-        info['date_joined'] = str(user.date_joined.astimezone(pytz.timezone(settings.TIME_ZONE)))
-    if user.name:
-        info['name'] = user.name
-    if user.surname:
-        info['surname'] = user.surname
-    if user.middle_name:
-        info['middle_name'] = user.middle_name
-    if user.staff:
-        info['staff'] = user.staff
-    if user.phone:
-        info['phone'] = str(user.phone)
-    if user.email:
-        info['email'] = str(user.email)
-    if user.photo:
-        info['photo'] = str(user.photo)
-    if user.department_id:
-        info['department_id'] = str(user.department_id)
-    if user.groups:
-        print(user.groups.values())
-        info['groups'] = user.groups.values()
-    info['is_active'] = user.is_active
-    info['is_check'] = user.is_check
-    return info
+# def get_user_dict(user):
+#     info = {}
+#     info['id'] = str(user.id)
+#     if user.last_login:
+#         info['last_login'] = str(user.last_login.astimezone(pytz.timezone(settings.TIME_ZONE)))
+#     if user.date_joined:
+#         info['date_joined'] = str(user.date_joined.astimezone(pytz.timezone(settings.TIME_ZONE)))
+#     if user.name:
+#         info['name'] = user.name
+#     if user.surname:
+#         info['surname'] = user.surname
+#     if user.middle_name:
+#         info['middle_name'] = user.middle_name
+#     if user.staff:
+#         info['staff'] = user.staff
+#     if user.phone:
+#         info['phone'] = str(user.phone)
+#     if user.email:
+#         info['email'] = str(user.email)
+#     if user.photo:
+#         info['photo'] = str(user.photo)
+#     info['department_id'] = (str(user.department_id) if user.department_id else None)
+#     if user.groups:
+#         print(user.groups.values())
+#         info['groups'] = user.groups.values()
+#     info['is_active'] = user.is_active
+#     info['is_check'] = user.is_check
+#     return info
 
 
 def user_response(is_success: bool, message: str, http_code: int, data, exception=None):
@@ -120,8 +119,11 @@ class WhoAmIView(APIView):
     permission_classes = (IsAuth,)
 
     def get(self, request):
-        user = request.user
-        return Response(user_response(True, "User was send successful", 200, get_user_dict(user)), status=status.HTTP_200_OK)
+        token = request.META.get('HTTP_AUTHORIZATION')
+        user_id = Token.objects.get(key=token.split(' ')[1]).user_id
+        user = User.objects.get(id=user_id)
+        serializer = UserSerializer(instance=user)
+        return Response(user_response(True, "User were send successful", 200, serializer.data), status=status.HTTP_200_OK)
 
 
 class UploadPhoto(APIView):
@@ -587,9 +589,9 @@ class UserEventsAPIView(APIView, LimitOffsetPagination):
             if recipient.staff != 'RE':
                 raise serializers.ValidationError(user_response(False, "User isn't a Recipient", 400, None, "ValidationError"))
             if user.staff == 'AD' or ((user.staff == 'OP' or user.staff == 'CO') and user.is_active and user.is_check):
-                events = Event.objects.filter(recipient_id=recipient.id) | Event.objects.filter(group_id__in=recipient.groups.values('id'))
+                events = Event.objects.filter(recipient_id=recipient.id).order_by('datetime', 'start', 'end') | Event.objects.filter(group_id__in=recipient.groups.values('id')).order_by('datetime', 'start', 'end')
             elif user.staff == 'RE' and user.is_active and user.is_check and user == recipient:
-                events = Event.objects.filter(is_check=True, recipient_id=recipient.id) | Event.objects.filter(is_check=True, group_id__in=recipient.groups.values('id'))
+                events = Event.objects.filter(is_check=True, recipient_id=recipient.id).order_by('datetime', 'start', 'end') | Event.objects.filter(is_check=True, group_id__in=recipient.groups.values('id')).order_by('datetime', 'start', 'end')
             else:
                 raise serializers.ValidationError(user_response(False, "Permission denied", 403, None, "ValidationError"))
 

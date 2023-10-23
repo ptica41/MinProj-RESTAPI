@@ -214,3 +214,33 @@ class GroupUsersAPIView(APIView, LimitOffsetPagination):
 
         except ObjectDoesNotExist:
             raise serializers.ValidationError(user_response(False, "Wrong ID", 400, None, "ValidationError"))
+
+
+class GroupManyUsersAPIView(APIView):
+    authentication_classes = (BearerToken,)
+    permission_classes = (IsAuth,)
+
+    def post(self, request, *args, **kwargs):
+        token = request.META.get('HTTP_AUTHORIZATION')
+        user_id = Token.objects.get(key=token.split(' ')[1]).user_id
+        user = User.objects.get(id=user_id)
+
+        try:
+            group = Group.objects.get(id=kwargs.get('pk'))
+            user_id = request.data['id']
+            for i in user_id:
+                recipient = User.objects.get(id=i)
+                if recipient.staff != 'RE':
+                    raise serializers.ValidationError(user_response(False, "User isn't a Recipient", 400, None, "ValidationError"))
+                if user.staff == 'AD' or (user.staff == 'CO' and user.is_check and user.is_active):
+                    if not UserGroups.objects.filter(group_id=group.id, user_id=i).exists():
+                        UserGroups.objects.create(group_id=group.id, user_id=i)
+                else:
+                    raise serializers.ValidationError(user_response(False, "Permission denied", 403, None, "ValidationError"))
+
+            users = User.objects.filter(groups=group)
+            serializer = UserSerializer(instance=users, many=True)
+            return Response(user_response(True, "Users were add to Group successful", 201, serializer.data), status=status.HTTP_201_CREATED)
+
+        except ObjectDoesNotExist:
+            raise serializers.ValidationError(user_response(False, "Wrong ID", 400, None, "ValidationError"))

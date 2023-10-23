@@ -2,13 +2,15 @@ from datetime import timedelta
 
 from django.utils import timezone
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.contrib.auth.password_validation import validate_password, get_password_validators
 
-from rest_framework import serializers, status
+from rest_framework import serializers, status, exceptions
 from rest_framework.response import Response
 from rest_framework.generics import ListAPIView
 from rest_framework.authtoken.models import Token
 
-from django_rest_passwordreset.views import ResetPasswordRequestToken
+from django_rest_passwordreset.views import ResetPasswordRequestToken, ResetPasswordConfirm
 from django_rest_passwordreset.models import clear_expired, get_password_reset_lookup_field, ResetPasswordToken
 from django_rest_passwordreset.views import HTTP_USER_AGENT_HEADER, HTTP_IP_ADDRESS_HEADER
 
@@ -16,7 +18,6 @@ from Minapp.views import user_response, BearerToken, IsAuth
 from Minapp.models import User
 from .serializers import PhoneSerializer, ResetPasswordSerializer
 
-from django_rest_passwordreset.models import ResetPasswordToken
 
 class MyResetPasswordRequestToken(ResetPasswordRequestToken):
 
@@ -105,3 +106,39 @@ class ListReset(ListAPIView):
     def list(self, request, *args, **kwargs):  # изменение response body
         response = super().list(request, *args, **kwargs)
         return Response(user_response(True, "List was send successful", 200, response.data), status=status.HTTP_200_OK)
+
+
+class MyResetPasswordConfirm(ResetPasswordConfirm):
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        password = request.data.get('password', {})
+        token = request.data.get('token', {})
+        # find token
+        reset_password_token = ResetPasswordToken.objects.filter(key=token).first()
+
+        if not reset_password_token:
+            return Response(user_response(False, "Incorrect data", 400, "The key wasn't found", exception="ValidationError"), status=status.HTTP_400_BAD_REQUEST)
+
+        # change users password (if we got to this code it means that the user is_active)
+        if reset_password_token.user.eligible_for_reset():
+            try:
+                # validate the password against existing validators
+                validate_password(
+                    password,
+                    user=reset_password_token.user,
+                    password_validators=get_password_validators(settings.AUTH_PASSWORD_VALIDATORS)
+                )
+            except ValidationError as e:
+                # raise a validation error for the serializer
+                raise exceptions.ValidationError({
+                    'password': e.messages
+                })
+
+            reset_password_token.user.set_password(password)
+            reset_password_token.user.save()
+
+        # Delete all password reset tokens for this user
+        ResetPasswordToken.objects.filter(user=reset_password_token.user).delete()
+
+        return Response(user_response(True, "Password was patched successful", 200, {'status': 'OK'}), status=status.HTTP_200_OK)

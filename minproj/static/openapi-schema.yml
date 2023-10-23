@@ -1520,6 +1520,51 @@ paths:
       tags:
         - groups
 
+  /groups/{id}/users/many/:
+    post:
+      security:
+        - bearerAuth: [ ]
+      operationId: AddUsersGroup
+      summary: Add recipient's list to group
+      description: |
+        # Добавление Получателей в группу
+        ## Администратор - добавление списка получателей в любую группу
+        ## Координаторы (валидные и активные) - добавление списка получателей в любую группу
+        ### В группу добавить можно только пользователей с ролью Получатель!
+        ### Добавляются записи в таблицу UserGroup - id группы берется из Uri, id пользователей из request body
+        ### Добавление в БД начинается с начала списка id получателей:
+        - Если в списке есть невалидный id - вызывается исключение, все предыдущие значения будут записаны в БД
+        - Если в БД есть запись с id из списка - этот id пропускается (для избежания дублирования) и продолжается прохождение цикла
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+            example: 1
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: array
+                  items:
+                    type: integer
+                  example:
+                    - 2
+                    - 3
+            required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { }
+          description: OK
+      tags:
+        - groups
+
   /events/:
     get:
       security:

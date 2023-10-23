@@ -6,8 +6,8 @@ from Minapp.models import Event, Location, User, Group
 class EventSerializer(serializers.ModelSerializer):
     is_check = serializers.BooleanField(read_only=True)
     location_id_id = serializers.IntegerField()
-    recipient_id_id = serializers.IntegerField(allow_null=True)
-    group_id_id = serializers.IntegerField(allow_null=True)
+    recipient_id_id = serializers.IntegerField(allow_null=True, required=False)
+    group_id_id = serializers.IntegerField(allow_null=True, required=False)
     photo = serializers.ListField(child=serializers.CharField(), allow_null=True)
 
     class Meta:

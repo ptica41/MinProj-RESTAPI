@@ -35,9 +35,9 @@ class EventsAPIView(ListAPIView):
         user = User.objects.get(id=user_id)
 
         if user.staff == 'AD' or ((user.staff == 'OP' or user.staff == 'CO') and user.is_active and user.is_check):
-            return Event.objects.all()
+            return Event.objects.all().order_by('datetime', 'start', 'end')
         elif user.staff == 'RE' and user.is_active and user.is_check:
-            return Event.objects.filter(is_check=True, recipient_id=user_id) | Event.objects.filter(is_check=True, group_id__in=user.groups.values('id'))
+            return Event.objects.filter(is_check=True, recipient_id=user_id).order_by('datetime', 'start', 'end') | Event.objects.filter(is_check=True, group_id__in=user.groups.values('id')).order_by('datetime', 'start', 'end')
         else:
             raise serializers.ValidationError(user_response(False, "Permission denied", 403, None, "ValidationError"))
 

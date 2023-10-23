@@ -67,7 +67,7 @@ class LoginSerializer(serializers.Serializer):
 class AdminUserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=128, min_length=8, write_only=True)
     staff = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    department_id_id = serializers.IntegerField()
+    department_id_id = serializers.IntegerField(required=False, allow_null=True)
 
     class Meta:
         model = User
@@ -143,7 +143,7 @@ class PatchRecipientCoordinatorSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['is_check']
+        fields = ['is_check', 'is_active']
 
 
 class UserGroupSerializer(serializers.ModelSerializer):
